@@ -1,0 +1,40 @@
+{
+  "name": "codingfuture-cflogsink",
+  "version": "0.12.0",
+  "author": "Andrey Galkin",
+  "summary": "Centralized logging",
+  "license": "Apache-2.0",
+  "source": "https://github.com/codingfuture/puppet-cflogsink",
+  "project_page": "https://github.com/codingfuture/puppet-cflogsink",
+  "issues_url": "https://github.com/codingfuture/puppet-cflogsink/issues",
+  "operatingsystem_support": [
+    {
+      "operatingsystem": "Debian",
+      "operatingsystemrelease": [
+        "8",
+        "9"
+      ]
+    },
+    {
+      "operatingsystem": "Ubuntu",
+      "operatingsystemrelease": [
+        "16.04",
+        "16.10",
+        "17.04"
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "name": "puppet",
+      "version_requirement": ">=4.7.0 <6.0.0"
+    }
+  ],
+  "dependencies": [
+    {
+      "name": "codingfuture-cfnetwork",
+      "version_requirement": ">= 0.12.0 < 0.13.0"
+    }
+  ],
+  "data_provider": "hiera"
+}

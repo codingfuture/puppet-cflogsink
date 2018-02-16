@@ -1,0 +1,20 @@
+{
+  "name": "codingfuture-cflogsink",
+  "version": "0.12.0",
+  "vcs": "git",
+  "package": [
+    "pkg"
+  ],
+  "tools": {
+    "puppet": "*",
+    "release": "*"
+  },
+  "plugins": {
+    "release": "futoin.cid.misc.releasetool"
+  },
+  "toolTune": {
+    "release": {
+      "changelog": "CHANGELOG.md"
+    }
+  }
+}
