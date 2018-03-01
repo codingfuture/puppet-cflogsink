@@ -34,6 +34,14 @@
     {
       "name": "codingfuture-cfnetwork",
       "version_requirement": ">= 0.12.0 < 0.13.0"
+    },
+    {
+      "name": "codingfuture-cfsystem",
+      "version_requirement": ">= 0.12.5 < 0.13.0"
+    },
+    {
+      "name": "codingfuture-cfdb",
+      "version_requirement": ">= 0.12.1 < 0.13.0"
     }
   ],
   "data_provider": "hiera"
