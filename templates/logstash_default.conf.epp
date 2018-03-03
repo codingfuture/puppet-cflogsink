@@ -1,0 +1,20 @@
+input {
+    relp {
+        id => "plain_relp"
+        port => "${CF_PORT}"
+    }
+    relp {
+        id => "secure_relp"
+        port => "${CF_SECURE_PORT}"
+    }
+}
+
+filter {
+}
+
+output {
+    elasticsearch {
+        id => "default_sink"
+        hosts => "http://${DB_HOST}:${DB_PORT}"
+    }
+}

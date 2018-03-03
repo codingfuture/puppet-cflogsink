@@ -17,6 +17,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
     
     commands :sudo => PuppetX::CfSystem::SUDO
     commands :systemctl => PuppetX::CfSystem::SYSTEMD_CTL
+    commands :logstash_plugin => '/usr/share/logstash/bin/logstash-plugin'
         
     def self.get_config_index
         'cf90logsink'
@@ -43,7 +44,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         new_services = []
 
         newconf.each do |name, conf|
-            name << "cflogstash-#{name}"
+            new_services << conf[:service_name]
 
             begin
                 self.send("create_logstash", conf)
@@ -58,79 +59,144 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
             cf_system.cleanupSystemD("cflogstash-", new_services)
         rescue => e
             warning(e)
-            warning(e.backtrace)
+            #warning(e.backtrace)
             err("Transition error in setup")
         end
     end
 
-    def self.create_logstash(newconf)
+    def self.create_logstash(conf)
         debug('on_config_change')
         
-        newconf = newconf[newconf.keys[0]]
-        service_name = newconf[:service_name]
-        user = newconf[:user]
+        service_name = conf[:service_name]
+        user = conf[:user]
         root_dir = conf[:root_dir]
         settings_tune = conf[:settings_tune]
         cfdb_settings = settings_tune.fetch('cfdb', {})
-        logtash_tune = settings_tune.fetch('logstash', {})
+        logstash_tune = settings_tune.fetch('logstash', {})
         
         avail_mem = cf_system.getMemory(service_name)
         
-        if is_jvm_metaspace
+        if PuppetX::CfSystem::Util.is_jvm_metaspace
             meta_mem = (avail_mem * 0.2).to_i
-            meta_mem = cf_system.fitRange(256, avail_mem, meta_mem)
+            meta_mem = cf_system.fitRange(128, avail_mem, meta_mem)
             meta_param = 'MetaspaceSize'
         else
             meta_mem = (avail_mem * 0.05).to_i
-            meta_mem = cf_system.fitRange(256, avail_mem, meta_mem)
+            meta_mem = cf_system.fitRange(128, avail_mem, meta_mem)
             meta_param = 'PermSize'
         end
         
         heap_mem = ((avail_mem - meta_mem) * 0.95).to_i
         
-        conf_root_dir = "/etc/cfsystem/#{s}"
-        conf_dir = "#{conf_root_dir}/conf.d"
+        conf_dir = "#{root_dir}/config"
+        log4j2_file = "#{conf_dir}/log4j2.properties"
+        jvmopt_file = "#{conf_dir}/jvm.options"
         
         need_restart = false
+
+        #---
+        port = cfdb_settings['port']
+        secure_port = cfdb_settings['secure_port']
+        control_port = cfdb_settings['control_port']
         
+        # Config File
+        #==================================================
+        plugin_state = logstash_plugin( 'list', '--verbose', '--installed' )
+        plugin_state_file = "#{conf_dir}/plugin_state.txt"
+        plugin_changed = cf_system.atomicWrite(plugin_state_file, plugin_state, { :user => user })
+        need_restart ||= plugin_changed
+
+        #---
+        
+        conf_file = "#{conf_dir}/logstash.yml"
+        conf_settings = {
+            'log.level' => 'info',
+            'log.format' => 'plain',
+        }
+        conf_settings.merge! logstash_tune
+        conf_settings.merge! ({
+            'path.logs' => "#{root_dir}/logs",
+            'path.data' => "#{root_dir}/data",
+            #'path.config' => "#{conf_dir}/pipelines.yml",
+            'http.host' => '127.0.0.1',
+            'http.port' => control_port,
+        })
+
+        # write
+        config_file_changed = cf_system.atomicWrite(conf_file, conf_settings.to_yaml, { :user => user })
+        need_restart ||= config_file_changed
+
+        #---
+        log4j2 = [
+            'status = error',
+            'appender.console.type = Console',
+            'appender.console.name = console',
+            'appender.console.layout.type = PatternLayout',
+            'appender.console.layout.pattern = %m%n',
+            'rootLogger.level = info',
+            'rootLogger.appenderRef.console.ref = console',
+        ]
+        log4j2_changed = cf_system.atomicWrite(log4j2_file, log4j2, { :user => user })
+        need_restart ||= log4j2_changed
+
+        #---
+        jvmopt = [
+            "-Xms#{heap_mem}m",
+            "-Xmx#{heap_mem}m",
+            "-XX:Max#{meta_param}=#{meta_mem}m",
+            "-Dlog4j2.disable.jmx=true",
+            '-XX:+UseParNewGC',
+            '-XX:+UseConcMarkSweepGC',
+            '-XX:CMSInitiatingOccupancyFraction=75',
+            '-XX:+UseCMSInitiatingOccupancyOnly',
+
+            '-XX:+DisableExplicitGC',
+
+            "-Djava.io.tmpdir=#{root_dir}/tmp",
+            '-Djava.awt.headless=true',
+            '-Dfile.encoding=UTF-8',
+            #'-XX:+HeapDumpOnOutOfMemoryError',
+            '7:-XX:OnOutOfMemoryError="kill -9 %p"',
+            '8:-XX:+ExitOnOutOfMemoryError',
+        ]
+        jvmopt_changed = cf_system.atomicWrite(jvmopt_file, jvmopt, { :user => user })
+        need_restart ||= jvmopt_changed
+
         # Service File
         #==================================================
-        start_timeout = 15
+        start_timeout = 60
 
         content_ini = {
             'Unit' => {
-                'Description' => "CF LogSink",
+                'Description' => "CF LogStash",
             },
             'Service' => {
                 '# Package Version' => PuppetX::CfSystem::Util.get_package_version('logstash'),
-                'ExecStart' => [
-                    '/usr/bin/java',
-                    '-XX:OnOutOfMemoryError=kill\s-9\s%%p',
-                    '-Djava.security.egd=/dev/urandom',
-                    "-Xms#{(heap_mem/2).to_i}m",
-                    "-Xmx#{heap_mem}m",
-                    "-XX:#{meta_param}=#{(meta_mem/2).to_i}m",
-                    "-XX:Max#{meta_param}=#{meta_mem}m",
-                    "-cp #{jars}",
-                    'clojure.main -m puppetlabs.trapperkeeper.main',
-                    '--config ', conf_dir,
-                    "-b '#{bootstrap_path}'",
-		    '--restart-file /opt/puppetlabs/server/data/puppetserver/restartcounter',
-                ].join(' '),
                 'ExecReload' => '/bin/kill -HUP $MAINPID',
-                'ExecStartPost' => "#{PuppetX::CfSystem::WAIT_SOCKET_BIN} 8140 #{start_timeout}",
-                'WorkingDirectory' => conf_root_dir,
+                'ExecStart' => "/usr/share/logstash/bin/logstash --path.settings #{conf_dir} -f #{conf_dir}/pipeline.conf",
+                'LimitNOFILE' => '16384',
+                'ExecStartPost' => "#{PuppetX::CfSystem::WAIT_SOCKET_BIN} #{port} #{start_timeout}",
+                'WorkingDirectory' => '/',
                 'TimeoutStartSec' => "#{start_timeout}",
                 'TimeoutStopSec' => "60",
+                'EnvironmentFile' => "#{root_dir}/.env",
             },
         }
         
+        content_env = {
+            'CF_PORT' => port,
+            'CF_SECURE_PORT' => secure_port,
+            'LS_HOME' => '/usr/share/logstash',
+            'LS_JVM_OPTS' => "-Xms#{heap_mem}m -Xmx#{heap_mem}m -XX:Max#{meta_param}=#{meta_mem}m",
+        }
+
         service_changed = self.cf_system().createService({
             :service_name => service_name,
             :user => user,
             :content_ini => content_ini,
-            :cpu_weight => newconf[:cpu_weight],
-            :io_weight => newconf[:io_weight],
+            :content_env => content_env,
+            :cpu_weight => conf[:cpu_weight],
+            :io_weight => conf[:io_weight],
             :mem_limit => avail_mem,
             :mem_lock => true,
         })
@@ -142,7 +208,6 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         if need_restart
             warning(">> reloading #{service_name}")
             systemctl('restart', "#{service_name}.service")
-            wait_sock(service_name, 8140)
         end        
     end
 end

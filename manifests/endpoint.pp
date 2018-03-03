@@ -6,6 +6,8 @@
 define cflogsink::endpoint (
     Enum[ 'logstash' ]
         $type = 'logstash',
+    Optional[String[1]]
+        $config = undef,
 
     Integer[1]
         $memory_weight = 100,
@@ -25,7 +27,7 @@ define cflogsink::endpoint (
     Optional[Cfnetwork::Port]
         $port = undef,
     Optional[Cfnetwork::Port]
-        $ssl_port = undef,
+        $secure_port = undef,
 
     Optional[ Hash[String[1],Any] ]
         $dbaccess = undef,
@@ -76,7 +78,7 @@ define cflogsink::endpoint (
     }
 
     #---
-    $ssl_clients = cfsystem::query([
+    $secure_clients = cfsystem::query([
         'from', 'resources', ['extract', [ 'certname', 'parameters' ],
             ['and',
                 ['=', 'type', 'Cflogsink::Client'],
@@ -84,8 +86,8 @@ define cflogsink::endpoint (
                 ['=', ['parameter', 'ssl'], true],
             ],
     ]])
-    $ssl_client_hosts = $ssl_clients.reduce( [] ) |$memo, $v| {
-        $memo + $ssl_clients['certname']
+    $secure_client_hosts = $secure_clients.reduce( [] ) |$memo, $v| {
+        $memo + $secure_clients['certname']
     }
 
     if $iface == 'any' {
@@ -95,13 +97,14 @@ define cflogsink::endpoint (
     }
 
     $fact_port = cfsystem::gen_port($service_name, $port)
-    $fact_ssl_port = cfsystem::gen_port("${service_name}:ssl", $ssl_port)
+    $fact_secure_port = cfsystem::gen_port("${service_name}:secure", $secure_port)
+    $fact_control_port = cfsystem::gen_port("${service_name}:control")
 
     ensure_resource('cfnetwork::describe_service', $user, {
         server => "tcp/${fact_port}",
     })
     ensure_resource('cfnetwork::describe_service', "${user}_ssl", {
-        server => "tcp/${fact_ssl_port}",
+        server => "tcp/${fact_secure_port}",
     })
 
     cfnetwork::service_port { "local:${user}": }
@@ -113,12 +116,12 @@ define cflogsink::endpoint (
         src => 'ipset:localnet',
     }
 
-    $ipset_ssl_clients = "${user}_ssl"
-    cfnetwork::ipset { $ipset_ssl_clients:
-        addr => $ssl_client_hosts.sort(),
+    $ipset_secure_clients = "${user}_ssl"
+    cfnetwork::ipset { $ipset_secure_clients:
+        addr => $secure_client_hosts.sort(),
     }
     cfnetwork::service_port { "${iface}:${user}_ssl":
-        src => "ipset:${ipset_ssl_clients}",
+        src => "ipset:${ipset_secure_clients}",
     }
 
     #---
@@ -127,8 +130,9 @@ define cflogsink::endpoint (
             'cfdb::access',
             {
                 main  => {
-                    local_user    => $user,
-                    notify => Cflogsink_endpoint[ $service_name ],
+                    local_user      => $user,
+                    use_unix_socket => false,
+                    notify          => Cflogsink_endpoint[ $service_name ],
                 },
             },
             $dbaccess
@@ -136,6 +140,13 @@ define cflogsink::endpoint (
     }
 
     #---
+    file { "${root_dir}/config/pipeline.conf":
+        owner   => $user,
+        group   => $user,
+        mode    => '0640',
+        content => epp(pick($config, "cflogsink/${type}_default.conf")),
+        notify  => Service[ $service_name ],
+    } ->
     cflogsink_endpoint { $service_name:
         ensure        => present,
         type          => $type,
@@ -159,7 +170,8 @@ define cflogsink::endpoint (
                     pick($settings_tune['cfdb'], {}),
                     {
                         'port'     => $fact_port,
-                        'ssl_port' => $ssl_port,
+                        'secure_port' => $fact_secure_port,
+                        'control_port' => $fact_control_port,
                     },
                 )
             }
@@ -174,5 +186,6 @@ define cflogsink::endpoint (
             Cfsystem::Puppetpki[$user],
             Anchor['cfnetwork:firewall'],
         ],
-    }
+    } ->
+    service { $service_name: }
 }

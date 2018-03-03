@@ -20,10 +20,10 @@ class cflogsink (
             'cflogsink::endpoint',
             { default => $server_conf },
             {
-                type     => 'logstash',
-                port     => 2514,
-                ssl_port => 3514,
-                dbaccess => {
+                type        => 'logstash',
+                port        => 2514,
+                secure_port => 3514,
+                dbaccess    => {
                     cluster => 'logsink',
                 },
             }
