@@ -78,22 +78,28 @@ define cflogsink::endpoint (
     }
 
     #---
-    $secure_clients = cfsystem::query([
-        'from', 'resources', ['extract', [ 'certname', 'parameters' ],
-            ['and',
-                ['=', 'type', 'Cflogsink::Client'],
-                ['=', ['parameter', 'target'], $::facts['fqdn']],
-                ['=', ['parameter', 'ssl'], true],
-            ],
-    ]])
-    $secure_client_hosts = $secure_clients.reduce( [] ) |$memo, $v| {
-        $memo + $secure_clients['certname']
-    }
-
     if $iface == 'any' {
         $listen = undef
     } else {
         $listen = cfnetwork::bind_address($iface)
+    }
+
+    #---
+    $secure_clients = cfsystem::query([
+        'from', 'resources',
+            ['extract', [ 'certname', 'parameters' ],
+                ['and',
+                    ['=', 'type', 'Cflogsink::Client'],
+                    ['or',
+                        [ '=', ['parameter', 'host'], $::facts['fqdn'] ],
+                        [ '=', ['parameter', 'host'], $listen ],
+                    ],
+                    ['=', ['parameter', 'tls'], true],
+                ],
+            ],
+    ])
+    $secure_client_hosts = $secure_clients.reduce( [] ) |$memo, $v| {
+        $memo + $secure_clients['certname']
     }
 
     $fact_port = cfsystem::gen_port($service_name, $port)
