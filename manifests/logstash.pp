@@ -21,7 +21,7 @@ class cflogsink::logstash (
 
     #---
     $all_plugins = $plugins + [
-        'input-plugin-relp',
+        'logstash-input-relp:input-plugin-relp',
         #'',
     ]
 
@@ -32,7 +32,7 @@ class cflogsink::logstash (
         content => file( 'cflogsink/logstash_plugin_installer.sh' ),
     } ->
     exec { "Installing LogStash plugins":
-        command => "/bin/true",
-        unless  => "${plugin_installer} ${all_plugins.join(' ')}",
+        command => "${plugin_installer} install ${all_plugins.join(' ')}",
+        unless  => "${plugin_installer} check ${all_plugins.join(' ')}",
     }
 }
