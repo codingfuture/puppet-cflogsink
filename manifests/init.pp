@@ -13,6 +13,8 @@ class cflogsink (
     Optional[Boolean]
         $tls = undef,
 ) inherits cflogsink::defaults {
+    include cfsystem
+
     if $server {
         if $server =~ Hash {
             $server_conf = $server
@@ -35,7 +37,7 @@ class cflogsink (
 
         create_resources(
             'cflogsink::endpoint',
-            { default => $merged_config }
+            { main => $merged_config }
         )
     }
 
@@ -45,7 +47,7 @@ class cflogsink (
             $sink = [{
                 'parameters' => {
                     'settings_tune' => {
-                        'cfdb' => {
+                        'cflogsink' => {
                             'listen'      => $merged_iface ? {
                                 'any'   => undef,
                                 default => cfnetwork::bind_address($merged_iface),
@@ -54,7 +56,7 @@ class cflogsink (
                             'secure_port' => $merged_config['secure_port'],
                         },
                     },
-                    'location' => $cfdb::location,
+                    'location' => $cfsystem::location,
                 }
             }]
         } else {
@@ -63,19 +65,19 @@ class cflogsink (
                     ['and',
                         ['=', 'type', 'Cflogsink_endpoint'],
                         ['=', 'certname', $target],
-                        ['=', 'title', 'default'],
+                        ['=', 'title', 'main'],
                     ],
             ]])
         }
 
         if $sink.size > 0 {
             $target_params = $sink[0]['parameters']
-            $target_tune = $target_params['settings_tune']['cfdb']
+            $target_tune = $target_params['settings_tune']['cflogsink']
 
             $target_host = pick( $target_tune['listen'], $target )
             $target_tls = pick(
                 $tls,
-                ($cfdb::location == $target_params['location'])
+                ($cfsystem::location != $target_params['location'])
             )
 
             if $target_tls {

@@ -12,8 +12,8 @@ class cflogsink::logstash (
     file { '/etc/systemd/system/logstash.service':
         ensure => link,
         target => '/dev/null',
-    } ->
-    service { 'logstash':
+    }
+    -> service { 'logstash':
         ensure  => stopped,
         enable  => mask,
         require => Package['logstash'],
@@ -25,13 +25,13 @@ class cflogsink::logstash (
         #'',
     ]
 
-    $plugin_installer = "/usr/share/logstash/bin/logstash-plugin-installer"
+    $plugin_installer = '/usr/share/logstash/bin/logstash-plugin-installer'
 
     file { $plugin_installer:
         mode    => '0700',
         content => file( 'cflogsink/logstash_plugin_installer.sh' ),
-    } ->
-    exec { "Installing LogStash plugins":
+    }
+    -> exec { 'Installing LogStash plugins':
         command => "${plugin_installer} install ${all_plugins.join(' ')}",
         unless  => "${plugin_installer} check ${all_plugins.join(' ')}",
     }

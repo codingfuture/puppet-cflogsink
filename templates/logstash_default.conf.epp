@@ -6,6 +6,11 @@ input {
     relp {
         id => "secure_relp"
         port => "${CF_SECURE_PORT}"
+        ssl_enable => true
+        ssl_cacert => "${CF_TLS_CACERT}"
+        ssl_cert => "${CF_TLS_CERT}"
+        ssl_key => "${CF_TLS_KEY}"
+        ssl_verify => true
     }
 }
 

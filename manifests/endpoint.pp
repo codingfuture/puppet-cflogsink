@@ -138,7 +138,7 @@ define cflogsink::endpoint (
                 main  => {
                     local_user      => $user,
                     use_unix_socket => false,
-                    notify          => Cflogsink_endpoint[ $service_name ],
+                    notify          => Cflogsink_endpoint[ $title  ],
                 },
             },
             $dbaccess
@@ -152,8 +152,8 @@ define cflogsink::endpoint (
         mode    => '0640',
         content => epp(pick($config, "cflogsink/${type}_default.conf")),
         notify  => Service[ $service_name ],
-    } ->
-    cflogsink_endpoint { $service_name:
+    }
+    -> cflogsink_endpoint { $title:
         ensure        => present,
         type          => $type,
         user          => $user,
@@ -169,21 +169,21 @@ define cflogsink::endpoint (
         settings_tune => merge(
             $settings_tune,
             {
-                cfdb => merge(
+                cflogsink => merge(
                     {
                         'listen'   => $listen,
                     },
-                    pick($settings_tune['cfdb'], {}),
+                    pick($settings_tune['cflogsink'], {}),
                     {
-                        'port'     => $fact_port,
-                        'secure_port' => $fact_secure_port,
+                        'port'         => $fact_port,
+                        'secure_port'  => $fact_secure_port,
                         'control_port' => $fact_control_port,
                     },
                 )
             }
         ),
 
-        location      => $cfdb::location,
+        location      => $cfsystem::location,
 
         require       => [
             User[$user],
@@ -192,6 +192,8 @@ define cflogsink::endpoint (
             Cfsystem::Puppetpki[$user],
             Anchor['cfnetwork:firewall'],
         ],
-    } ->
-    service { $service_name: }
+    }
+    -> service { $service_name:
+        require => Cfsystem_flush_config['commit'],
+    }
 }

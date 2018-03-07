@@ -71,7 +71,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         user = conf[:user]
         root_dir = conf[:root_dir]
         settings_tune = conf[:settings_tune]
-        cfdb_settings = settings_tune.fetch('cfdb', {})
+        cflogsink_settings = settings_tune.fetch('cflogsink', {})
         logstash_tune = settings_tune.fetch('logstash', {})
         
         avail_mem = cf_system.getMemory(service_name)
@@ -95,9 +95,9 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         need_restart = false
 
         #---
-        port = cfdb_settings['port']
-        secure_port = cfdb_settings['secure_port']
-        control_port = cfdb_settings['control_port']
+        port = cflogsink_settings['port']
+        secure_port = cflogsink_settings['secure_port']
+        control_port = cflogsink_settings['control_port']
         
         # Config File
         #==================================================
@@ -186,6 +186,9 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         content_env = {
             'CF_PORT' => port,
             'CF_SECURE_PORT' => secure_port,
+            'CF_TLS_CACERT' => "#{root_dir}/pki/puppet/ca.crt",
+            'CF_TLS_CERT' => "#{root_dir}/pki/puppet/local.crt",
+            'CF_TLS_KEY' => "#{root_dir}/pki/puppet/local.key",
             'LS_HOME' => '/usr/share/logstash',
             'LS_JVM_OPTS' => "-Xms#{heap_mem}m -Xmx#{heap_mem}m -XX:Max#{meta_param}=#{meta_mem}m",
         }
