@@ -34,5 +34,6 @@ class cflogsink::logstash (
     -> exec { 'Installing LogStash plugins':
         command => "${plugin_installer} install ${all_plugins.join(' ')}",
         unless  => "${plugin_installer} check ${all_plugins.join(' ')}",
+        require => Package['logstash'],
     }
 }

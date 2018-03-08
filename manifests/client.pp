@@ -38,6 +38,7 @@ class cflogsink::client (
             'type' => 'omrelp',
             target => $host,
             port => $port,
+            'template' => 'RSYSLOG_SyslogProtocol23Format',
             'queue.type' => 'FixedArray',
             'queue.filename' => 'logsink',
             'tls' => $tls ? { true => 'on', default => 'off' },

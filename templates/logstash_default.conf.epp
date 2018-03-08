@@ -2,10 +2,12 @@ input {
     relp {
         id => "plain_relp"
         port => "${CF_PORT}"
+        type => "syslog"
     }
     relp {
         id => "secure_relp"
         port => "${CF_SECURE_PORT}"
+        type => "syslog"
         ssl_enable => true
         ssl_cacert => "${CF_TLS_CACERT}"
         ssl_cert => "${CF_TLS_CERT}"
@@ -15,6 +17,37 @@ input {
 }
 
 filter {
+    if [type] == "syslog" {
+        syslog_pri {
+            remove_field => [
+                "syslog_facility_code",
+                "syslog_severity_code"
+            ]
+        }
+        grok {
+            match => { "message" => "%{SYSLOG5424LINE}" }
+            remove_field => [
+                "syslog5424_pri",
+                "syslog5424_ver",
+                "message"
+            ]
+        }
+        mutate {
+            rename => {
+                "syslog_severity" => "severity"
+                "syslog_facility" => "facility"
+                "syslog5424_msg" => "msg"
+                "syslog5424_proc" => "pid"
+                "syslog5424_app" => "app"
+                "host" => "src"
+            }
+            rename => { "syslog5424_host" => "host" }
+        }
+        date {
+            match => [ "syslog5424_ts", "ISO8601" ]
+            remove_field => [ "syslog5424_ts" ]
+        }
+    }
 }
 
 output {
