@@ -82,7 +82,6 @@ filter {
                 "syslog5424_host" => "host"
                 #"message" => "orig"
             }
-            strip => 'msg'
             remove_field => [
                 "message",
                 "type",
@@ -115,10 +114,13 @@ filter {
         }
     }
 
-    # Final touch on appname
+    # Final touches
     #---
     mutate {
         gsub => [
+            # Remove trailing newline
+            'msg', '\n$', '',
+
             # MySQL prevends name to tag
             'app', '^mysqld-cfmysql', 'cfmysql',
 

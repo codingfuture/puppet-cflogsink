@@ -103,8 +103,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         #==================================================
         plugin_state = logstash_plugin( 'list', '--verbose', '--installed' )
         plugin_state_file = "#{conf_dir}/plugin_state.txt"
-        plugin_changed = cf_system.atomicWrite(plugin_state_file, plugin_state, { :user => user })
-        need_restart ||= plugin_changed
+        cf_system.atomicWrite(plugin_state_file, plugin_state, { :user => user })
 
         #---
         
@@ -123,8 +122,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         })
 
         # write
-        config_file_changed = cf_system.atomicWrite(conf_file, conf_settings.to_yaml, { :user => user })
-        need_restart ||= config_file_changed
+        cf_system.atomicWrite(conf_file, conf_settings.to_yaml, { :user => user })
 
         #---
         log4j2 = [
@@ -136,8 +134,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
             'rootLogger.level = info',
             'rootLogger.appenderRef.console.ref = console',
         ]
-        log4j2_changed = cf_system.atomicWrite(log4j2_file, log4j2, { :user => user })
-        need_restart ||= log4j2_changed
+        cf_system.atomicWrite(log4j2_file, log4j2, { :user => user })
 
         #---
         jvmopt = [
@@ -159,8 +156,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
             '7:-XX:OnOutOfMemoryError="kill -9 %p"',
             '8:-XX:+ExitOnOutOfMemoryError',
         ]
-        jvmopt_changed = cf_system.atomicWrite(jvmopt_file, jvmopt, { :user => user })
-        need_restart ||= jvmopt_changed
+        cf_system.atomicWrite(jvmopt_file, jvmopt, { :user => user })
 
         # Service File
         #==================================================
@@ -172,6 +168,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
             },
             'Service' => {
                 '# Package Version' => PuppetX::CfSystem::Util.get_package_version('logstash'),
+                '# Config Version' => PuppetX::CfSystem.makeVersion(conf_dir),
                 'ExecReload' => '/bin/kill -HUP $MAINPID',
                 'ExecStart' => "/usr/share/logstash/bin/logstash --path.settings #{conf_dir} -f #{conf_dir}/pipeline.conf",
                 'LimitNOFILE' => '16384',
