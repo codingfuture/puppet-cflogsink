@@ -75,6 +75,11 @@ filter {
             ]
         }
         mutate {
+            remove_field => [
+                "message",
+                "type",
+                "syslog_severity_code"
+            ]
             rename => {
                 "syslog_severity" => "severity"
                 "syslog_facility" => "facility"
@@ -85,10 +90,9 @@ filter {
                 "syslog5424_host" => "host"
                 #"message" => "orig"
             }
-            remove_field => [
-                "message",
-                "type",
-                "syslog_severity_code"
+            gsub => [
+                # Remove trailing newline
+                'msg', '\n$', ''
             ]
         }
         date {
@@ -97,53 +101,35 @@ filter {
         }
     }
 
-    # CFDB stuff
+    #===============
+
+    # Firewall
     #---
-    if [app] =~ '^cfmysql-' {
-        if [app] =~ '-arb$' {
-            grok {
-                match => { 'msg' => '^%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z0-9]+):%{SPACE}%{GREEDYDATA:new_msg}' }
+    if [app] == 'ulogd' {
+        mutate {
+            replace => {
+                '[@metadata][index]' => 'fw'
             }
-            mutate {
-                rename => {
-                    'new_msg' => 'msg'
-                    'new_severity' => 'severity'
-                }
-                lowercase => [ 'severity' ]
-            }
-            if [severity] == 'error' {
-                mutate { add_tag => 'error'  }
-            }
+            remove_field => [
+                'pid',
+                'severity',
+                'facility'
+            ]
+        }
+        kv {
+            source => 'msg'
+            target => 'kv'
         }
     }
 
     # Access logs
     #---
-    if [app] =~ '^access-' {
+    else if [app] =~ '^access-' or [msg] =~ '^\[ACCESS\] ' {
         grok {
-            match => { 'msg' => '^%{NOTSPACE:vhost}:%{NONNEGINT:vport} %{HTTPD_COMBINEDLOG} %{NUMBER:duration}' }
+            match => { 'msg' => '^(\[ACCESS\] )?%{NOTSPACE:vhost}:%{NONNEGINT:vport} %{HTTPD_COMBINEDLOG} %{BASE10NUM:duration}' }
             remove_field => [ 'msg' ]
         }
-        mutate {
-            replace => {
-                '[@metadata][index]' => 'access'
-            }
-        }
-    }
 
-    if [app] =~ '^cfpuppet' and [msg] =~ '^\[ACCESS\] ' {
-        grok {
-            match => { 'msg' => '^\[ACCESS\] %{NOTSPACE:vhost}:%{NONNEGINT:vport} %{HTTPD_COMBINEDLOG} %{BASE10NUM:duration}' }
-            remove_field => [ 'msg' ]
-        }
-        mutate {
-            replace => {
-                '[@metadata][index]' => 'access'
-            }
-        }
-    }
-    
-    if [@metadata][index] == 'access' {
         geoip {
             cache_size => 10000
             fields => [
@@ -156,6 +142,15 @@ filter {
             target => 'geoip'
         }
         mutate {
+            remove_field => [
+                'pid',
+                'timestamp',
+                'severity',
+                'facility'
+            ]
+            replace => {
+                '[@metadata][index]' => 'access'
+            }
             convert => {
                 'bytes' => 'integer'
                 'duration' => 'float'
@@ -166,12 +161,6 @@ filter {
                 'agent', '"', '',
                 'referrer', '"', ''
             ]
-            remove_field => [
-                'pid',
-                'timestamp',
-                'severity',
-                'facility'
-            ]
         }
         useragent {
             source => 'agent'
@@ -179,14 +168,31 @@ filter {
         }
     }
 
+    # CFDB stuff
+    #---
+    else if [app] =~ '^cfmysql-.*-arb$' {
+        grok {
+            match => { 'msg' => '^%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z0-9]+):%{SPACE}%{GREEDYDATA:new_msg}' }
+        }
+        mutate {
+            rename => {
+                'new_msg' => 'msg'
+                'new_severity' => 'severity'
+            }
+            lowercase => [ 'severity' ]
+        }
+        if [severity] == 'error' {
+            mutate { add_tag => 'error'  }
+        }
+    }
+
+    #===============
+
     # Final touches
     #---
     mutate {
         gsub => [
-            # Remove trailing newline
-            'msg', '\n$', '',
-
-            # MySQL prevends name to tag
+            # MySQL prepends name to tag
             'app', '^mysqld-cfmysql', 'cfmysql',
 
             # Make sure to combine related

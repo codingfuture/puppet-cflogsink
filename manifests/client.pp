@@ -79,4 +79,16 @@ class cflogsink::client (
         ensure => running,
         enable => true,
     }
+
+    #---
+    ensure_resource('package', 'ulogd2')
+    Package['ulogd2']
+    -> file { '/etc/ulogd.conf':
+        mode    => '0640',
+        content => file('cflogsink/ulogd-syslog.conf')
+    }
+    ~> exec { 'Restart ulogd':
+        command     => '/bin/systemctl restart ulogd.service',
+        refreshonly => true,
+    }
 }
