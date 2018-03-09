@@ -1,0 +1,44 @@
+<% |
+    String[1] $user,
+    String[1] $env_file
+| -%>
+#!/bin/dash
+
+# Make sure to run under instance user
+if test "$(/usr/bin/id -u)" = 0; then
+    exec /usr/bin/sudo -H -u <%= $user %> $0 "$@"
+    # should not reach here
+    exit -1
+fi
+
+index=$1
+query=$2
+start=$3
+
+. <%= $env_file %>
+
+if [ -n "${index}" ]; then
+    index="${index}*/"
+    shift
+else
+    echo "Usage: $(basename $0) <index> [<query> [<from>]]"
+    exit 1
+fi
+
+if [ -n "${query}" ]; then
+    query="&q=${query}"
+    shift
+fi
+
+[ -m "${from}" ] && shift
+
+case $index in
+    access*) jqf='[ .["@timestamp"], .client_ip, .response, .duration, .vhost, "\(.verb) \(.request)" ]';;
+    fw*) jqf='[ .["@timestamp"], .host, .msg ]';;
+    *) jqf='[ .["@timestamp"], .host, .severity, .msg ]';;
+esac
+
+/usr/bin/curl -s "http://${DB_HOST}:${DB_PORT}/${index}/_search?sort=@timestamp:desc&size=1000&from=${from:-0}${query}" "$@" \
+    | /usr/bin/jq -r ".hits.hits[]._source | ${jqf} | @tsv" 2>&1 \
+    | /usr/bin/tac \
+    | /usr/bin/less -S +G

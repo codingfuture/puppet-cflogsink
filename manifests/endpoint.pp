@@ -196,4 +196,14 @@ define cflogsink::endpoint (
     -> service { $service_name:
         require => Cfsystem_flush_config['commit'],
     }
+
+    #---
+    include cfsystem::custombin
+    file { "${cfsystem::custombin::bin_dir}/cflog_${title}":
+        mode    => '0755',
+        content => epp('cflogsink/cflog.sh.epp', {
+            user     => $user,
+            env_file => "${root_dir}/.env",
+        }),
+    }
 }
