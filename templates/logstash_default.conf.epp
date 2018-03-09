@@ -19,17 +19,56 @@ input {
 filter {
     if [type] == "syslog" {
         syslog_pri {
+            facility_labels => [
+                "kernel",
+                "user",
+                "mail",
+                "daemon",
+                "auth",
+                "daemon",
+                "daemon",
+                "mail",
+                "daemon",
+                "daemon",
+                "auth",
+                "daemon",
+                "daemon",
+                "audit",
+                "alert",
+                "daemon",
+                "local0",
+                "local1",
+                "local2",
+                "local3",
+                "local4",
+                "local5",
+                "local6",
+                "local7"
+            ]
+            severity_labels => [
+                "emerg",
+                "alert",
+                "crit",
+                "error",
+                "warn",
+                "notice",
+                "info",
+                "debug"
+            ]
             remove_field => [
-                "syslog_facility_code",
-                "syslog_severity_code"
+                "syslog_facility_code"
             ]
         }
+
+        if [syslog_severity_code] <= 3 {
+            mutate { add_tag => 'error' }
+        }
+
         grok {
             match => { "message" => "%{SYSLOG5424LINE}" }
             remove_field => [
                 "syslog5424_pri",
-                "syslog5424_ver",
-                "message"
+                "syslog5424_ver"
             ]
         }
         mutate {
@@ -40,17 +79,58 @@ filter {
                 "syslog5424_proc" => "pid"
                 "syslog5424_app" => "app"
                 "host" => "src"
+                "syslog5424_host" => "host"
+                #"message" => "orig"
             }
-            rename => { "syslog5424_host" => "host" }
+            strip => 'msg'
+            remove_field => [
+                "message",
+                "type",
+                "syslog_severity_code"
+            ]
         }
         date {
             match => [ "syslog5424_ts", "ISO8601" ]
             remove_field => [ "syslog5424_ts" ]
         }
     }
+
+    # CFDB stuff
+    #---
+    if [app] =~ '^cfmysql-' {
+        if [app] =~ '-arb$' {
+            grok {
+                match => { 'msg' => '%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z0-9]+):%{SPACE}%{GREEDYDATA:new_msg}' }
+            }
+            mutate {
+                rename => {
+                    'new_msg' => 'msg'
+                    'new_severity' => 'severity'
+                }
+                lowercase => [ 'severity' ]
+            }
+            if [severity] == 'error' {
+                mutate { add_tag => 'error'  }
+            }
+        }
+    }
+
+    # Final touch on appname
+    #---
+    mutate {
+        gsub => [
+            # MySQL prevends name to tag
+            'app', '^mysqld-cfmysql', 'cfmysql',
+
+            # Make sure to combine related
+            'app', '^cf([^-]+)-([^-]+)-.*$', 'cf\1-\2',
+            'app', '^app-([^-]+).*$', 'app-\1'
+        ]
+    }
 }
 
 output {
+    # stdout { codec => "rubydebug" }
     elasticsearch {
         id => "default_sink"
         hosts => "http://${DB_HOST}:${DB_PORT}"
