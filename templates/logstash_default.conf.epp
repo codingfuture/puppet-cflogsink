@@ -55,6 +55,9 @@ filter {
                 "info",
                 "debug"
             ]
+            add_field => {
+                '[@metadata][index]' => 'log'
+            }
             remove_field => [
                 "syslog_facility_code"
             ]
@@ -99,7 +102,7 @@ filter {
     if [app] =~ '^cfmysql-' {
         if [app] =~ '-arb$' {
             grok {
-                match => { 'msg' => '%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z0-9]+):%{SPACE}%{GREEDYDATA:new_msg}' }
+                match => { 'msg' => '^%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z0-9]+):%{SPACE}%{GREEDYDATA:new_msg}' }
             }
             mutate {
                 rename => {
@@ -111,6 +114,68 @@ filter {
             if [severity] == 'error' {
                 mutate { add_tag => 'error'  }
             }
+        }
+    }
+
+    # Access logs
+    #---
+    if [app] =~ '^access-' {
+        grok {
+            match => { 'msg' => '^%{NOTSPACE:vhost}:%{NONNEGINT:vport} %{HTTPD_COMBINEDLOG} %{NUMBER:duration}' }
+            remove_field => [ 'msg' ]
+        }
+        mutate {
+            replace => {
+                '[@metadata][index]' => 'access'
+            }
+        }
+    }
+
+    if [app] =~ '^cfpuppet' and [msg] =~ '^\[ACCESS\] ' {
+        grok {
+            match => { 'msg' => '^\[ACCESS\] %{NOTSPACE:vhost}:%{NONNEGINT:vport} %{HTTPD_COMBINEDLOG} %{BASE10NUM:duration}' }
+            remove_field => [ 'msg' ]
+        }
+        mutate {
+            replace => {
+                '[@metadata][index]' => 'access'
+            }
+        }
+    }
+    
+    if [@metadata][index] == 'access' {
+        geoip {
+            cache_size => 10000
+            fields => [
+                'country_code3',
+                'latitude',
+                'longitude',
+                'timezone'
+            ]
+            source => 'clientip'
+            target => 'geoip'
+        }
+        mutate {
+            convert => {
+                'bytes' => 'integer'
+                'duration' => 'float'
+                'response' => 'integer'
+                'vport' => 'integer'
+            }
+            gsub => [
+                'agent', '"', '',
+                'referrer', '"', ''
+            ]
+            remove_field => [
+                'pid',
+                'timestamp',
+                'severity',
+                'facility'
+            ]
+        }
+        useragent {
+            source => 'agent'
+            target => 'ua'
         }
     }
 
@@ -132,9 +197,10 @@ filter {
 }
 
 output {
-    # stdout { codec => "rubydebug" }
+    # stdout { codec => rubydebug { metadata => true } }
     elasticsearch {
         id => "default_sink"
         hosts => "http://${DB_HOST}:${DB_PORT}"
+        index => "%{[@metadata][index]}-%{+YYYY.MM.dd}"
     }
 }

@@ -208,6 +208,8 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         if need_restart
             warning(">> reloading #{service_name}")
             systemctl('restart', "#{service_name}.service")
+        else
+            systemctl('start', "#{service_name}.service")
         end        
     end
 end
