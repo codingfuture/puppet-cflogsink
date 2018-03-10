@@ -68,6 +68,13 @@ class cflogsink::client (
 
     #---
     package { 'rsyslog-relp': }
+    -> file { '/etc/rsyslog.d':
+        ensure  => directory,
+        mode    => '0750',
+        purge   => true,
+        force   => true,
+        recurse => true,
+    }
     -> file { '/etc/rsyslog.conf':
         mode    => '0640',
         content => epp('cflogsink/rsyslog.conf.epp', {

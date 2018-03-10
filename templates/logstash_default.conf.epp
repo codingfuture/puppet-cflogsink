@@ -158,6 +158,7 @@ filter {
                 'vport' => 'integer'
             }
             gsub => [
+                'app', '^access[_-]', '',
                 'agent', '"', '',
                 'referrer', '"', ''
             ]
