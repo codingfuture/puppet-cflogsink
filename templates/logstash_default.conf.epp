@@ -124,7 +124,7 @@ filter {
 
     # Access logs
     #---
-    else if [app] =~ '^access-' or [msg] =~ '^\[ACCESS\] ' {
+    else if [app] =~ /^access-/ or [msg] =~ /^\[ACCESS\] / {
         grok {
             match => { 'msg' => '^(\[ACCESS\] )?%{NOTSPACE:vhost}:%{NONNEGINT:vport} %{HTTPD_COMBINEDLOG} %{BASE10NUM:duration}' }
             remove_field => [ 'msg' ]
@@ -168,21 +168,40 @@ filter {
         }
     }
 
-    # CFDB stuff
+    # Ordinary logs
     #---
-    else if [app] =~ '^cfmysql-.*-arb$' {
-        grok {
-            match => { 'msg' => '^%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z0-9]+):%{SPACE}%{GREEDYDATA:new_msg}' }
-        }
-        mutate {
-            rename => {
-                'new_msg' => 'msg'
-                'new_severity' => 'severity'
+    else {
+        # CFDB stuff
+        #---
+        if [app] =~ /^cfmysql-.*-arb$/ {
+            grok {
+                match => { 'msg' => '^%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z0-9]+):%{SPACE}%{GREEDYDATA:new_msg}' }
             }
-            lowercase => [ 'severity' ]
+            mutate {
+                rename => {
+                    'new_msg' => 'msg'
+                    'new_severity' => 'severity'
+                }
+                lowercase => [ 'severity' ]
+            }
+            if [severity] == 'error' {
+                mutate { add_tag => 'error'  }
+            }
         }
-        if [severity] == 'error' {
-            mutate { add_tag => 'error'  }
+
+        # Detect warnings and errors
+        #---
+        if [severity] != 'notice' {
+            # pass - others most likely do not come from systemd
+        } else if [msg] =~ /(?i)(error|fatal)/ {
+            mutate {
+                replace => { 'severity' => 'error' }
+                add_tag => 'error'
+            }
+        } else if [msg] =~ /(?i)warn/ {
+            mutate {
+                replace => { 'severity' => 'warn' }
+            }
         }
     }
 
