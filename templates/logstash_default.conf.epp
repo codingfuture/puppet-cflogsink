@@ -124,7 +124,7 @@ filter {
 
     # Access logs
     #---
-    else if [app] =~ /^access-/ or [msg] =~ /^\[ACCESS\] / {
+    else if [app] =~ /^access[_-]/ or [msg] =~ /^\[ACCESS\] / {
         grok {
             match => { 'msg' => '^(\[ACCESS\] )?%{NOTSPACE:vhost}:%{NONNEGINT:vport} %{HTTPD_COMBINEDLOG} %{BASE10NUM:duration}' }
             remove_field => [ 'msg' ]

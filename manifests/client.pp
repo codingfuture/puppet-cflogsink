@@ -25,7 +25,6 @@ class cflogsink::client (
         {
             'queue.size' => 10000,
             'queue.dequeuebatchsize' => 1000,
-            'queue.type' => 'LinkedList',
             'queue.maxdiskspace' => '1g',
             'queue.timeoutenqueue' => 0,
             'queue.saveonshutdown' => 'on',
@@ -52,7 +51,7 @@ class cflogsink::client (
 
     #---
     $queue_size = $om_tune['queue.size']
-    $queue_mb = Integer.new( $queue_size / 1024 )
+    $queue_mb = Integer.new( $queue_size / 512 )
 
     cfsystem_memory_weight { 'cfsystem:logqueue':
         min_mb => $queue_mb,

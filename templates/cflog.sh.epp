@@ -30,7 +30,7 @@ if [ -n "${query}" ]; then
     shift
 fi
 
-[ -m "${from}" ] && shift
+[ -n "${from}" ] && shift
 
 case $index in
     access*) jqf='[ .["@timestamp"], .client_ip, .response, .duration, .vhost, "\(.verb) \(.request)" ]';;
