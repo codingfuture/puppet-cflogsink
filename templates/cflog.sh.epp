@@ -13,7 +13,8 @@ fi
 
 index=$1
 query=$2
-start=$3
+from=$3
+size=$4
 
 . <%= $env_file %>
 
@@ -21,7 +22,8 @@ if [ -n "${index}" ]; then
     index="${index}*/"
     shift
 else
-    echo "Usage: $(basename $0) <index> [<query> [<from>]]"
+    echo "Usage: $(basename $0) <index> [<query> [<from> [<size>]]]"
+    echo "Known indexes: 'access', 'fw' and 'log'"
     exit 1
 fi
 
@@ -31,6 +33,7 @@ if [ -n "${query}" ]; then
 fi
 
 [ -n "${from}" ] && shift
+[ -n "${size}" ] && shift
 
 case $index in
     access*) jqf='[ .["@timestamp"], .client_ip, .response, .duration, .vhost, "\(.verb) \(.request)" ]';;
@@ -38,7 +41,7 @@ case $index in
     *) jqf='[ .["@timestamp"], .host, .severity, .msg ]';;
 esac
 
-/usr/bin/curl -s "http://${DB_HOST}:${DB_PORT}/${index}/_search?sort=@timestamp:desc&size=1000&from=${from:-0}${query}" "$@" \
+/usr/bin/curl -s "http://${DB_HOST}:${DB_PORT}/${index}/_search?sort=@timestamp:desc&size=${size:-10000}&from=${from:-0}${query}" "$@" \
     | /usr/bin/jq -r ".hits.hits[]._source | ${jqf} | @tsv" 2>&1 \
     | /usr/bin/tac \
     | /usr/bin/less -S +G
