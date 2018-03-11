@@ -31,6 +31,9 @@ define cflogsink::endpoint (
 
     Optional[ Hash[String[1],Any] ]
         $dbaccess = undef,
+
+    Array[String[1]]
+        $extra_clients = [],
 ) {
     include "cflogsink::${type}"
 
@@ -118,8 +121,12 @@ define cflogsink::endpoint (
         user => $user,
     }
 
+    $access_ipset = "cflog_${title}_access"
+    cfnetwork::ipset { $access_ipset:
+        addr => ['ipset:localnet'] + $extra_clients,
+    }
     cfnetwork::service_port { "${iface}:${user}":
-        src => 'ipset:localnet',
+        src => ["ipset:${access_ipset}"],
     }
 
     $ipset_secure_clients = "${user}_ssl"
