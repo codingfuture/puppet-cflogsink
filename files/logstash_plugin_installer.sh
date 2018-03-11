@@ -15,7 +15,7 @@ for p in "$@" skip; do
     fi
 
     n=$(echo $p | cut -d: -f1)
-    i=$(echo $p | cut -d: -f2)
+    i=$(echo "${p}:${p}" | cut -d: -f2)
 
     if ! echo "$installed" | grep -q $n; then
         if [ $mode = 'install' ]; then

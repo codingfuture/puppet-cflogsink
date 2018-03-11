@@ -21,7 +21,7 @@ class cflogsink::logstash (
 
     #---
     $all_plugins = $plugins + [
-        'logstash-input-relp:input-plugin-relp',
+        'logstash-input-relp',
         #'',
     ]
 
