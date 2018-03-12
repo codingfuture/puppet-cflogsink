@@ -24,13 +24,14 @@ class cflogsink::client (
     $om_tune = merge(
         {
             'queue.size' => 10000,
-            'queue.dequeuebatchsize' => 1000,
-            'queue.maxdiskspace' => '1g',
-            'queue.timeoutenqueue' => 0,
-            'queue.saveonshutdown' => 'on',
+            # NOTE: high CPU memory usage have been noticed with high value and TLS
+            'queue.dequeuebatchsize'  => $tls ? { true => 128, default => 1000 },
+            'queue.maxdiskspace'      => '1g',
+            'queue.timeoutenqueue'    => 0,
+            'queue.saveonshutdown'    => 'on',
             'action.resumeretrycount' => -1,
-            timeout => 90,
-            'conn.timeout' => 5,
+            timeout                   => 90,
+            'conn.timeout'            => 5,
         },
         $tune,
         {
