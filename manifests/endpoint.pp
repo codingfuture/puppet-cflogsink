@@ -95,7 +95,8 @@ define cflogsink::endpoint (
         'from', 'resources',
             ['extract', [ 'certname', 'parameters' ],
                 ['and',
-                    ['=', 'type', 'Cflogsink::Client'],
+                    ['=', 'title', 'Cflogsink::Client'],
+                    ['=', 'type', 'Class'],
                     ['or',
                         [ '=', ['parameter', 'host'], $::facts['fqdn'] ],
                         [ '=', ['parameter', 'host'], $listen ],
@@ -105,7 +106,7 @@ define cflogsink::endpoint (
             ],
     ])
     $secure_client_hosts = $secure_clients.reduce( [] ) |$memo, $v| {
-        $memo + $secure_clients['certname']
+        $memo + $v['certname']
     }
 
     $fact_port = cfsystem::gen_port($service_name, $port)
