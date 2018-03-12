@@ -10,8 +10,6 @@ class cflogsink (
         $server = false,
     Optional[String[1]]
         $target = undef,
-    Optional[String[1]]
-        $target_proxy = undef,
     Optional[Boolean]
         $tls = undef,
 ) inherits cflogsink::defaults {
@@ -76,15 +74,16 @@ class cflogsink (
             $target_params = $sink[0]['parameters']
             $target_tune = $target_params['settings_tune']['cflogsink']
 
-            $target_host = pick( $target_proxy, $target_tune['listen'], $target )
             $target_tls = pick(
                 $tls,
                 ($cfsystem::location != $target_params['location'])
             )
 
             if $target_tls {
+                $target_host = $target
                 $target_port = $target_tune['secure_port']
             } else {
+                $target_host = pick( $target_tune['listen'], $target )
                 $target_port = $target_tune['port']
             }
 
