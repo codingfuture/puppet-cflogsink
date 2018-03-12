@@ -34,6 +34,9 @@ define cflogsink::endpoint (
 
     Array[String[1]]
         $extra_clients = [],
+
+    Array[String[1]]
+        $extra_secure_clients = [],
 ) {
     include "cflogsink::${type}"
 
@@ -112,7 +115,7 @@ define cflogsink::endpoint (
     ensure_resource('cfnetwork::describe_service', $user, {
         server => "tcp/${fact_port}",
     })
-    ensure_resource('cfnetwork::describe_service', "${user}_ssl", {
+    ensure_resource('cfnetwork::describe_service', "${user}_tls", {
         server => "tcp/${fact_secure_port}",
     })
 
@@ -129,11 +132,11 @@ define cflogsink::endpoint (
         src => ["ipset:${access_ipset}"],
     }
 
-    $ipset_secure_clients = "${user}_ssl"
+    $ipset_secure_clients = "cflog_${title}_tlsaccess"
     cfnetwork::ipset { $ipset_secure_clients:
-        addr => $secure_client_hosts.sort(),
+        addr => $secure_client_hosts.sort() + $extra_secure_clients,
     }
-    cfnetwork::service_port { "${iface}:${user}_ssl":
+    cfnetwork::service_port { "${iface}:${user}_tls":
         src => "ipset:${ipset_secure_clients}",
     }
 
