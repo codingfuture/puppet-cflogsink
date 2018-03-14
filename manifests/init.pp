@@ -15,6 +15,14 @@ class cflogsink (
 ) inherits cflogsink::defaults {
     include cfsystem
 
+    $centralized = !!$target
+
+    #---
+    exec { 'cflogsink:rsyslog:refresh':
+        command     => '/bin/systemctl reload-or-restart rsyslog.service',
+        refreshonly => true,
+    }
+
     if $server {
         if $server =~ Hash {
             $server_conf = $server
@@ -79,6 +87,8 @@ class cflogsink (
                 ($cfsystem::location != $target_params['location'])
             )
 
+            $target_tls_compress = ( $target_params['type'] != 'logstash' )
+
             if $target_tls {
                 $target_host = $target
                 $target_port = $target_tune['secure_port']
@@ -93,5 +103,11 @@ class cflogsink (
                 loglevel => warning,
             }
         }
+    } else {
+        file { '/etc/rsyslog.conf':
+            mode    => '0640',
+            content => file('cflogsink/rsyslog-default.conf'),
+        }
+        ~> Exec['cflogsink:rsyslog:refresh']
     }
 }

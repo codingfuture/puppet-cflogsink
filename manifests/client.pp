@@ -11,39 +11,44 @@ class cflogsink::client (
     Boolean
         $tls = $cflogsink::target_tls,
     Integer[1]
-        $timeout = 600,
+        $timeout = 90,
     Integer[1]
         $conn_timeout = 5,
     Boolean
-        $tls_compress = true,
+        $tls_compress = $cflogsink::target_tls_compress,
     Hash
         $tune = {},
 ) {
+    assert_private()
+
     include cflogsink
 
     $om_tune = merge(
         {
             'queue.size' => 10000,
-            # NOTE: high CPU memory usage have been noticed with high value and TLS
-            'queue.dequeuebatchsize'  => $tls ? { true => 128, default => 1000 },
+            'queue.dequeuebatchsize'  => 1000,
             'queue.maxdiskspace'      => '1g',
             'queue.timeoutenqueue'    => 0,
             'queue.saveonshutdown'    => 'on',
+            'queue.type'              => 'FixedArray',
             'action.resumeretrycount' => -1,
-            timeout                   => 90,
-            'conn.timeout'            => 5,
+            'action.resumeInterval'   => 10,
+            #'action.reportSuspensionContinuation' => 'on',
+            #'windowSize'              => 1000,
         },
         $tune,
         {
+            'queue.filename' => 'logsink',
             'type' => 'omrelp',
             target => $host,
             port => $port,
             'template' => 'RSYSLOG_SyslogProtocol23Format',
-            'queue.type' => 'FixedArray',
-            'queue.filename' => 'logsink',
+            timeout => $timeout,
+            'conn.timeout' => $conn_timeout,
             'tls' => $tls ? { true => 'on', default => 'off' },
             'tls.compression' => $tls_compress ? { true => 'on', default => 'off' },
             'tls.authMode' => 'name',
+            'tls.permittedPeer' => [ $host ],
             'tls.cacert' => '/etc/puppetlabs/puppet/ssl/certs/ca.pem',
             'tls.mycert' => "/etc/puppetlabs/puppet/ssl/certs/${::facts['fqdn']}.pem",
             'tls.myprivkey' => "/etc/puppetlabs/puppet/ssl/private_keys/${::facts['fqdn']}.pem",
