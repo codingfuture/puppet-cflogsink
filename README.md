@@ -13,12 +13,17 @@ What it does:
     * Optimized storage field.
     * Special handling of known message formats to minimize noise.
     * Automatic error detection in regular log level.
+* Support for custom Logstash endpoint for special purposes.
 * Reliably real-time message delivery through rsyslog RELP.
 * Supports UDP & TCP local receive (suitable for JVM services).
 * Heavy duty `/dev/hdlog` skipping systemd.
     * Mostly for HTTP access log and similar.
     * UDP & TCP are also available.
-* NetFilter LOG (NFLOG/ULOG) support throug ulogd2
+* NetFilter LOG (NFLOG/ULOG) support through ulogd2
+* CLI ElastciSearch log viewer `cflog`:
+    * Help for cases when Kibana gets broken or not available
+    * Mimics ordinary log file output
+    * Supports simple queries for filtering
 
 
 ## Technical Support
@@ -120,3 +125,62 @@ Configure log sink endpoint.
 * `$dbaccess = undef` - database acccess (e.g. Elasticsearch for Logstash).
 * `$extra_clients = []` - extra list of insecure clients (for cfnetwork::ipset).
 * `$extra_secure_clients = []` - extra list of secure clients (for cfnetwork::ipset).
+
+# `cflog_${title}` CLI tool
+
+The tool is created per `cflogsink::endpoint` instance. Below is example for the default one.
+All output goes to `less` which scrolls to end by default.
+
+It's essential in case of emergency when Kibana output is not available.
+
+By default size limit is 10000 messages. They are counted from the newest. Amount of skipped
+messages can be seet with `&lt;from>` argument.
+
+Day, month and year selection can be done through index name.
+
+Usage:
+
+    Usage: cflog_main &lt;index> [&lt;query> [&lt;from> [&lt;size>]]]
+    Known indexes: 'access', 'fw' and 'log'
+
+Lookup latest logs for all hosts:
+
+    $ cflog_main log
+    ...
+    2018-03-15T16:04:05.824Z        web.example.com notice  Received disconnect from 10.0.2.2 port 39233:11: disconnected by user
+    2018-03-15T16:04:05.824Z        web.example.com notice  Disconnected from 10.0.2.2 port 39233
+    2018-03-15T16:04:05.825Z        web.example.com notice  pam_unix(sshd:session): session closed for user vagrant
+    ....
+    2018-03-15T16:04:13.802Z        web2.example.com        notice  Disconnected from 10.0.2.2 port 53173
+    2018-03-15T16:04:13.803Z        web2.example.com        notice  pam_unix(sshd:session): session closed for user vagrant
+    ...
+    2018-03-15T16:04:56.815Z        puppet.example.com      notice  rexec line 25: Deprecated option RhostsRSAAuthentication
+    ...
+
+Lookup firewall logs for particular month and host:
+
+    $ cflog_main fw-2018.03 host:maint.example.com
+    ... 
+    2018-03-15T16:10:11.397Z        maint.example.com       OUT-unknown: IN= OUT=eth1 MAC= SRC=:: DST=ff02::16 LEN=96 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICMPv6 TYPE=143 CODE=0
+    2018-03-15T16:10:11.397Z        maint.example.com       OUT-unknown: IN= OUT=eth1 MAC= SRC=:: DST=ff02::16 LEN=96 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICMPv6 TYPE=143 CODE=0
+    2018-03-15T16:10:11.397Z        maint.example.com       OUT-unknown: IN= OUT=eth1 MAC= SRC=:: DST=ff02::16 LEN=76 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICMPv6 TYPE=143 CODE=0
+    2018-03-15T16:10:11.397Z        maint.example.com       OUT-unknown: IN= OUT=eth1 MAC= SRC=:: DST=ff02::16 LEN=76 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICMPv6 TYPE=143 CODE=0
+    2018-03-15T16:10:11.397Z        maint.example.com       OUT-vagrant: IN= OUT=eth0 MAC= SRC=:: DST=ff02::16 LEN=76 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICMPv6 TYPE=143 CODE=0
+    2018-03-15T16:10:11.397Z        maint.example.com       OUT-vagrant: IN= OUT=eth0 MAC= SRC=:: DST=ff02::16 LEN=76 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICMPv6 TYPE=143 CODE=0
+    2018-03-15T16:10:13.125Z        maint.example.com       OUT-vagrant: IN= OUT=eth0 MAC= SRC=fe80::a00:27ff:fe8d:c04d DST=ff02::16 LEN=76 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=
+    2018-03-15T16:10:13.125Z        maint.example.com       OUT-main: IN= OUT=eth1 MAC= SRC=fe80::a00:27ff:fea8:e56a DST=ff02::16 LEN=96 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICM
+    2018-03-15T16:10:13.125Z        maint.example.com       OUT-vagrant: IN= OUT=eth0 MAC= SRC=fe80::a00:27ff:fe8d:c04d DST=ff02::16 LEN=76 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=
+    2018-03-15T16:10:13.125Z        maint.example.com       OUT-main: IN= OUT=eth1 MAC= SRC=fe80::a00:27ff:fea8:e56a DST=ff02::16 LEN=96 TC=0 HOPLIMIT=1 FLOWLBL=0 PROTO=ICM
+
+Lookup access logs for particular application:
+
+    $ cflog_main access app:cfpuppetserver
+    ...
+    2018-03-15T16:07:44.803Z                200     130     puppetback.example.com  GET /puppet/v3/node/db.example.com?environment=production&configured_environment=product
+    2018-03-15T16:07:44.941Z                200     36      puppetback.example.com  GET /puppet/v3/file_metadatas/pluginfacts?environment=production&links=follow&recurse=tr
+    2018-03-15T16:07:45.885Z                200     729     puppetback.example.com  GET /puppet/v3/file_metadatas/plugins?environment=production&links=follow&recurse=true&s
+    2018-03-15T16:07:46.175Z                200     24      puppetback.example.com  GET /puppet/v3/file_content/plugins/puppet/provider/cflogsink_endpoint/cflogsink.rb?envi
+    2018-03-15T16:07:46.230Z                200     24      puppetback.example.com  GET /puppet/v3/file_content/plugins/puppet/provider/cflogsink_endpoint/cflogsink.rb?envi
+    2018-03-15T16:07:46.357Z                200     27      puppetback.example.com  GET /puppet/v3/file_metadatas/locales?environment=production&links=follow&recurse=true&s
+    2018-03-15T16:08:10.808Z                200     23096   puppetback.example.com  POST /puppet/v3/catalog/db.example.com?environment=production
+    2018-03-15T16:08:29.039Z                200     2467    puppetback.example.com  PUT /puppet/v3/report/db.example.com?environment=production&
