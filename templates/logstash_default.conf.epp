@@ -4,16 +4,19 @@ input {
         port => "${CF_PORT}"
         type => "syslog"
     }
-    relp {
-        id => "secure_relp"
-        port => "${CF_SECURE_PORT}"
-        type => "syslog"
-        ssl_enable => true
-        ssl_cacert => "${CF_TLS_CACERT}"
-        ssl_cert => "${CF_TLS_CERT}"
-        ssl_key => "${CF_TLS_KEY}"
-        ssl_verify => true
-    }
+
+    # NOTE: LogStash+OpenSSL does not work well with rsyslog+gnutls!
+    #
+    # relp {
+    #     id => "secure_relp"
+    #     port => "${CF_SECURE_PORT}"
+    #     type => "syslog"
+    #     ssl_enable => true
+    #     ssl_cacert => "${CF_TLS_CACERT}"
+    #     ssl_cert => "${CF_TLS_CERT}"
+    #     ssl_key => "${CF_TLS_KEY}"
+    #     ssl_verify => true
+    # }
 }
 
 filter {

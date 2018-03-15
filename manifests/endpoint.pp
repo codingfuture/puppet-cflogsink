@@ -73,7 +73,8 @@ define cflogsink::endpoint (
         group  => $user,
         mode   => '0750',
     }
-    -> cfsystem::puppetpki{ $user: }
+    # No need, as secure relp is done by rsyslog
+    #-> cfsystem::puppetpki{ $user: }
 
     #---
     cfsystem_memory_weight { $service_name:
@@ -122,7 +123,7 @@ define cflogsink::endpoint (
 
     cfnetwork::service_port { "local:${user}": }
     cfnetwork::client_port { "local:${user}":
-        user => $user,
+        user => [ $user, 'root' ],
     }
 
     $access_ipset = "cflog_${title}_access"
@@ -200,13 +201,49 @@ define cflogsink::endpoint (
             User[$user],
             File[$user_dirs],
             Cfsystem_memory_weight[$service_name],
-            Cfsystem::Puppetpki[$user],
+            #Cfsystem::Puppetpki[$user],
             Anchor['cfnetwork:firewall'],
         ],
     }
     -> service { $service_name:
         require => Cfsystem_flush_config['commit'],
     }
+
+    #---
+    include cflogsink::imrelpmodule
+
+    file { "/etc/rsyslog.d/49_${service_name}.conf":
+        mode    => '0640',
+        content => epp('cflogsink/imrelp.conf.epp', {
+            service_name => $service_name,
+            listen       => pick($listen, '0.0.0.0'),
+            port         => $fact_secure_port,
+            target       => pick($listen, '127.0.0.1'),
+            target_port  => $fact_port,
+            tune         => {
+                'queue.size'             => 10000,
+                'queue.dequeuebatchsize' => 1000,
+                'queue.maxdiskspace'     => '1g',
+                'queue.timeoutenqueue'   => 0,
+                'queue.saveonshutdown'   => 'on',
+                'queue.type'             => 'LinkedList',
+                'queue.filename'         => $service_name,
+                'maxdatasize'            => '128k',
+                'tls'                    => 'on',
+                'tls.compression'        => 'on',
+                'tls.dhbits'             => 2048,
+                'tls.authmode'           => 'name',
+                'tls.permittedpeer'      => $secure_client_hosts,
+                'tls.cacert'             => '/etc/puppetlabs/puppet/ssl/certs/ca.pem',
+                'tls.mycert'             => "/etc/puppetlabs/puppet/ssl/certs/${::facts['fqdn']}.pem",
+                'tls.myprivkey'          => "/etc/puppetlabs/puppet/ssl/private_keys/${::facts['fqdn']}.pem",
+                'keepalive'              => 'on',
+                'keepalive.interval'     => 30,
+                'keepalive.time'         => 30,
+            }
+        }),
+    }
+    ~> Exec['cflogsink:rsyslog:refresh']
 
     #---
     include cfsystem::custombin

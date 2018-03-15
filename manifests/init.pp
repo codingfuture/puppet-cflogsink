@@ -98,7 +98,9 @@ class cflogsink (
                 ($cfsystem::location != $target_params['location'])
             )
 
-            $target_tls_compress = ( $target_params['type'] != 'logstash' )
+            # rsyslog is used for TLS input
+            #$target_tls_compress = ( $target_params['type'] != 'logstash' )
+            $target_tls_compress = true
 
             if $target_tls {
                 $target_host = $target

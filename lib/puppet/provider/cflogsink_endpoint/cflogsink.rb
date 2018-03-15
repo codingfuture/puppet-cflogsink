@@ -182,10 +182,10 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         
         content_env = {
             'CF_PORT' => port,
-            'CF_SECURE_PORT' => secure_port,
-            'CF_TLS_CACERT' => "#{root_dir}/pki/puppet/ca.crt",
-            'CF_TLS_CERT' => "#{root_dir}/pki/puppet/local.crt",
-            'CF_TLS_KEY' => "#{root_dir}/pki/puppet/local.key",
+            #'CF_SECURE_PORT' => secure_port,
+            #'CF_TLS_CACERT' => "#{root_dir}/pki/puppet/ca.crt",
+            #'CF_TLS_CERT' => "#{root_dir}/pki/puppet/local.crt",
+            #'CF_TLS_KEY' => "#{root_dir}/pki/puppet/local.key",
             'LS_HOME' => '/usr/share/logstash',
             'LS_JVM_OPTS' => "-Xms#{heap_mem}m -Xmx#{heap_mem}m -XX:Max#{meta_param}=#{meta_mem}m",
         }
