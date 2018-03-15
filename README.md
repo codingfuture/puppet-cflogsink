@@ -134,13 +134,13 @@ All output goes to `less` which scrolls to end by default.
 It's essential in case of emergency when Kibana output is not available.
 
 By default size limit is 10000 messages. They are counted from the newest. Amount of skipped
-messages can be seet with `&lt;from>` argument.
+messages can be seet with `<from>` argument.
 
 Day, month and year selection can be done through index name.
 
 Usage:
 
-    Usage: cflog_main &lt;index> [&lt;query> [&lt;from> [&lt;size>]]]
+    Usage: cflog_main <index> [<query> [<from> [<size>]]]
     Known indexes: 'access', 'fw' and 'log'
 
 Lookup latest logs for all hosts:
