@@ -18,6 +18,7 @@ What it does:
 * Heavy duty `/dev/hdlog` skipping systemd.
     * Mostly for HTTP access log and similar.
     * UDP & TCP are also available.
+* NetFilter LOG (NFLOG/ULOG) support throug ulogd2
 
 
 ## Technical Support

@@ -18,11 +18,22 @@ class cflogsink (
     $centralized = !!$target
 
     #---
-    exec { 'cflogsink:rsyslog:refresh':
+    ensure_resource('package', 'rsyslog')
+    Package['rsyslog']
+    ->exec { 'cflogsink:rsyslog:refresh':
         command     => '/bin/systemctl reload-or-restart rsyslog.service',
         refreshonly => true,
     }
 
+    #---
+    ensure_resource('package', 'ulogd2')
+    Package['ulogd2']
+    -> exec { 'cflogsink:ulogd:refresh':
+        command     => '/bin/systemctl reload-or-restart ulogd.service',
+        refreshonly => true,
+    }
+
+    #---
     if $server {
         if $server =~ Hash {
             $server_conf = $server
@@ -109,5 +120,11 @@ class cflogsink (
             content => file('cflogsink/rsyslog-default.conf'),
         }
         ~> Exec['cflogsink:rsyslog:refresh']
+
+        file { '/etc/ulogd.conf':
+            mode    => '0640',
+            content => file('cflogsink/ulogd-local.conf')
+        }
+        ~> Exec['cflogsink:ulogd:refresh']
     }
 }
