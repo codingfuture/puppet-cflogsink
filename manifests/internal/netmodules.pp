@@ -2,13 +2,13 @@
 # Copyright 2018 (c) Andrey Galkin
 #
 
-class cflogsink::imrelpmodule {
+class cflogsink::internal::netmodules {
     assert_private()
 
-    file { '/etc/rsyslog.d/00-imrelpmodule.conf':
+    file { '/etc/rsyslog.d/00-netmodules.conf':
         ensure  => file,
         mode    => '0640',
-        content => file('cflogsink/imrelpmodule.conf'),
+        content => file('cflogsink/netmodules.conf'),
     }
     ~> Exec['cflogsink:rsyslog:refresh']
 }

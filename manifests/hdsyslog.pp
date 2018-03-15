@@ -9,7 +9,7 @@ class cflogsink::hdsyslog (
         $port = 515,
 ) {
     include cflogsink
-    include cflogsink::netmodules
+    include cflogsink::internal::netmodules
 
     $rule_tune = merge(
         {

@@ -5,14 +5,14 @@
 
 class cflogsink (
     Cfnetwork::Bindface
-        $iface = $cflogsink::defaults::iface,
+        $iface = $cflogsink::internal::defaults::iface,
     Variant[ Boolean, Hash ]
         $server = false,
     Optional[String[1]]
         $target = undef,
     Optional[Boolean]
         $tls = undef,
-) inherits cflogsink::defaults {
+) inherits cflogsink::internal::defaults {
     include cfsystem
 
     $centralized = !!$target

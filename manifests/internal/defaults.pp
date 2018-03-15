@@ -3,7 +3,7 @@
 #
 
 
-class cflogsink::defaults {
+class cflogsink::internal::defaults {
     include cfsystem
 
     $iface = $cfsystem::service_face

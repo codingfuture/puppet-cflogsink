@@ -3,7 +3,7 @@
 #
 
 
-class cflogsink::logstash (
+class cflogsink::internal::logstash (
     Array[ String[1] ] $plugins = [],
 ) {
     include cfdb::elasticsearch

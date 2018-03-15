@@ -38,7 +38,8 @@ define cflogsink::endpoint (
     Array[String[1]]
         $extra_secure_clients = [],
 ) {
-    include "cflogsink::${type}"
+    include cflogsink
+    include "cflogsink::internal::${type}"
 
     $service_name = "cf${type}-${title}"
     $user = "${type}_${title}"
@@ -210,7 +211,7 @@ define cflogsink::endpoint (
     }
 
     #---
-    include cflogsink::imrelpmodule
+    include cflogsink::internal::imrelpmodule
 
     file { "/etc/rsyslog.d/49_${service_name}.conf":
         mode    => '0640',

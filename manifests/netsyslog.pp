@@ -5,7 +5,7 @@
 class cflogsink::netsyslog {
     include cfnetwork
     include cflogsink
-    include cflogsink::netmodules
+    include cflogsink::internal::netmodules
 
     cfnetwork::describe_service { 'netsyslog':
         server => [
