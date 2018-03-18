@@ -112,7 +112,7 @@ class cflogsink (
 
             include cflogsink::client
         } else {
-            notify { "cflogsink target '${target}' is unknown, skipping":
+            cf_notify { "cflogsink target '${target}' is unknown, skipping":
                 loglevel => warning,
             }
         }
