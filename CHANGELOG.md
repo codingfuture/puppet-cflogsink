@@ -1,4 +1,7 @@
 
+# (next)
+- FIXED: minor Ruby warnings
+
 # 0.12.2 (2018-03-19)
 - CHANGED: to use cf_notify for warnings
 

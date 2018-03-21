@@ -27,7 +27,7 @@ class cflogsink::hdsyslog (
 
     #---
     $queue_size = $rule_tune['queue.size']
-    $queue_mb = Integer.new( $queue_size / 1024 )
+    $queue_mb = Integer.new( Integer.new( $queue_size ) / 1024 )
 
     cfsystem_memory_weight { 'cflogsink:hdsyslog':
         min_mb => $queue_mb,
