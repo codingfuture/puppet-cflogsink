@@ -38,7 +38,7 @@ fi
 case $index in
     access*) jqf='[ .["@timestamp"], .client_ip, .response, .duration, .vhost, "\(.verb) \(.request)" ]';;
     fw*) jqf='[ .["@timestamp"], .host, .msg ]';;
-    *) jqf='[ .["@timestamp"], .host, .severity, .msg ]';;
+    *) jqf='[ .["@timestamp"], .host, .severity, .app, .msg ]';;
 esac
 
 /usr/bin/curl -s "http://${DB_HOST}:${DB_PORT}/${index}/_search?sort=@timestamp:desc&size=${size:-10000}&from=${from:-0}${query}" "$@" \
