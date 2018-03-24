@@ -1,5 +1,5 @@
 
-# (next)
+# 0.12.3 (2018-03-24)
 - CHANGED: strip of app name & most kv.* fields in firewall logs
 - FIXED: to show app name in cflog_* tool
 - FIXED: minor Puppet warnings
