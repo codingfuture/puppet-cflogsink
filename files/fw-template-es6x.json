@@ -33,9 +33,7 @@
                         "DST": { "type": "ip" },
                         "DPT": { "type": "integer" },
                         "SRC": { "type": "ip" },
-                        "SPT": { "type": "integer" },
-                        "IN": { "type": "integer" },
-                        "OUT": { "type": "integer" }
+                        "SPT": { "type": "integer" }
                     }
                 },
                 "msg": { "type": "text", "norms": false },
