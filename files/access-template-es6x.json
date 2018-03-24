@@ -5,15 +5,15 @@
         "index.refresh_interval" : "5s"
     },
     "mappings" : {
-        "_default_" : {
+        "doc" : {
             "_source" : {
-                "enabled" : false
+                "enabled" : true
             },
             "date_detection" : false,
             "dynamic" : false,
             "properties" : {
                 "@timestamp": { "type": "date" },
-                "@version": { "type": "keyword" },
+                "@version": { "type": "keyword", "index": false },
                 "agent": { "type": "text", "norms": false },
                 "app": { "type": "keyword" },
                 "auth": { "type": "keyword" },
@@ -25,18 +25,18 @@
                     "properties" : {
                         "country_code3": { "type": "keyword" },
                         "location" : { "type" : "geo_point" },
-                        "latitude" : { "type" : "half_float" },
-                        "longitude" : { "type" : "half_float" },
+                        "latitude" : { "type" : "half_float", "index": false },
+                        "longitude" : { "type" : "half_float", "index": false },
                         "timezone" : { "type" : "keyword" }
                     }
                 },
                 "host": { "type": "keyword" },
                 "httpversion": { "type": "keyword" },
-                "ident": { "type": "keyword" },
+                "ident": { "type": "keyword", "index": false },
                 "referrer": { "type": "text", "norms": false },
                 "request": { "type": "text", "norms": false },
                 "response": { "type": "short" },
-                "src": { "type": "text", "norms": false },
+                "src": { "type": "text", "norms": false, "index": false },
                 "tags" : { "type" : "keyword" },
                 "ua" : {
                     "dynamic" : false,
@@ -54,7 +54,7 @@
                 },
                 "verb": { "type": "keyword" },
                 "vhost": { "type": "keyword" },
-                "vport": { "type": "short" }
+                "vport": { "type": "short", "index": false }
             }
         }
     }

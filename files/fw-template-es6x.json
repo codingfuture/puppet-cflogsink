@@ -5,23 +5,23 @@
         "index.refresh_interval" : "5s"
     },
     "mappings" : {
-        "_default_" : {
+        "doc" : {
             "_source" : {
-                "enabled" : false
+                "enabled" : true
             },
             "date_detection" : false,
             "dynamic" : false,
             "properties" : {
                 "@timestamp": { "type": "date" },
-                "@version": { "type": "keyword" },
+                "@version": { "type": "keyword", "index": false },
                 "app": { "type": "keyword" },
                 "geoip"  : {
                     "dynamic" : false,
                     "properties" : {
                         "country_code3": { "type": "keyword" },
                         "location" : { "type" : "geo_point" },
-                        "latitude" : { "type" : "half_float" },
-                        "longitude" : { "type" : "half_float" },
+                        "latitude" : { "type" : "half_float", "index": false },
+                        "longitude" : { "type" : "half_float", "index": false },
                         "timezone" : { "type" : "keyword" }
                     }
                 },
@@ -37,7 +37,7 @@
                     }
                 },
                 "msg": { "type": "text", "norms": false },
-                "src": { "type": "text", "norms": false },
+                "src": { "type": "text", "norms": false, "index": false },
                 "tags" : { "type" : "keyword" }
             }
         }

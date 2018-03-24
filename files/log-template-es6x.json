@@ -5,22 +5,22 @@
         "index.refresh_interval" : "5s"
     },
     "mappings" : {
-        "_default_" : {
+        "doc" : {
             "_source" : {
-                "enabled" : false
+                "enabled" : true
             },
             "date_detection" : false,
             "dynamic" : false,
             "properties" : {
                 "@timestamp": { "type": "date" },
-                "@version": { "type": "keyword" },
+                "@version": { "type": "keyword", "index": false },
                 "app": { "type": "keyword" },
                 "facility": { "type": "keyword" },
                 "host": { "type": "keyword" },
                 "msg": { "type": "text", "norms": false },
-                "pid": { "type": "integer" },
+                "pid": { "type": "integer", "index": false },
                 "severity": { "type": "keyword" },
-                "src": { "type": "text", "norms": false },
+                "src": { "type": "text", "norms": false, "index": false },
                 "tags" : { "type" : "keyword" }
             }
         }
