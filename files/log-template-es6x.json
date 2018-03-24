@@ -1,5 +1,5 @@
 {
-    "template" : "access-*",
+    "index_patterns" : [ "log-*" ],
     "version" : 60001,
     "settings" : {
         "index.refresh_interval" : "5s"
@@ -7,7 +7,7 @@
     "mappings" : {
         "_doc" : {
             "_source" : {
-                "enable" : false
+                "enabled" : false
             },
             "date_detection" : false,
             "dynamic" : false,
@@ -21,7 +21,7 @@
                 "pid": { "type": "integer" },
                 "severity": { "type": "keyword" },
                 "src": { "type": "text", "norms": false },
-                "tags" : { "type" : "keyword", "index_name" : "tag" }
+                "tags" : { "type" : "keyword" }
             }
         }
     }

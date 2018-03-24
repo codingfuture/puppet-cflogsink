@@ -1,5 +1,5 @@
 {
-    "template" : "access-*",
+    "index_patterns" : [ "access-*" ],
     "version" : 60001,
     "settings" : {
         "index.refresh_interval" : "5s"
@@ -7,7 +7,7 @@
     "mappings" : {
         "_doc" : {
             "_source" : {
-                "enable" : false
+                "enabled" : false
             },
             "date_detection" : false,
             "dynamic" : false,
@@ -20,9 +20,9 @@
                 "bytes": { "type": "integer" },
                 "clientip": { "type": "ip" },
                 "duration": { "type": "half_float" },
-                "geoip"  : {
+                "geoip" : {
+                    "dynamic" : false,
                     "properties" : {
-                        "dynamic" : false,
                         "country_code3": { "type": "keyword" },
                         "location" : { "type" : "geo_point" },
                         "latitude" : { "type" : "half_float" },
@@ -37,10 +37,10 @@
                 "request": { "type": "text", "norms": false },
                 "response": { "type": "short" },
                 "src": { "type": "text", "norms": false },
-                "tags" : { "type" : "keyword", "index_name" : "tag" },
+                "tags" : { "type" : "keyword" },
                 "ua" : {
+                    "dynamic" : false,
                     "properties" : {
-                        "dynamic" : false,
                         "build" : { "type": "text", "norms": false },
                         "device" : { "type": "keyword" },
                         "major" : { "type": "keyword" },
