@@ -1,3 +1,7 @@
+<% |
+    String[1] $root_dir,
+| -%>
+
 input {
     relp {
         id => "plain_relp"
@@ -127,13 +131,41 @@ filter {
         }
 
         if [msg] =~ /^BLACKLIST-/ {
-            mutate { add_tag => 'blacklist'  }
+            mutate {
+                add_tag => 'blacklist'
+                copy    => { 'kv.SRC' => '[@metadata][remoteip]' } 
+            }
         } else if [msg] =~ /^IN-/ {
-            mutate { add_tag => 'input'  }
+            mutate {
+                add_tag => 'input'
+                copy    => { 'kv.SRC' => '[@metadata][remoteip]' } 
+            }
         } else if [msg] =~ /^OUT-/ {
-            mutate { add_tag => 'output'  }
+            mutate {
+                add_tag => 'output'
+                copy    => { 'kv.DST' => '[@metadata][remoteip]' } 
+            }
         } else if [msg] =~ /^PASS-/ {
-            mutate { add_tag => 'forward'  }
+            mutate {
+                add_tag => 'forward'
+                copy    => { 'kv.SRC' => '[@metadata][remoteip]' } 
+            }
+        }
+
+        if [@metadata][remoteip] {
+            geoip {
+                cache_size => 10000
+                fields => [
+                    'location',
+                    'country_code3',
+                    'latitude',
+                    'longitude',
+                    'timezone'
+                ]
+                source => '[@metadata][remoteip]'
+                target => 'geoip'
+                tag_on_failure => [ 'localnet' ]
+            }
         }
     }
 
@@ -156,6 +188,7 @@ filter {
             ]
             source => 'clientip'
             target => 'geoip'
+            tag_on_failure => [ 'localnet' ]
         }
         mutate {
             remove_field => [
@@ -240,9 +273,43 @@ filter {
 
 output {
     # stdout { codec => rubydebug { metadata => true } }
-    elasticsearch {
-        id => "default_sink"
-        hosts => "http://${DB_HOST}:${DB_PORT}"
-        index => "%{[@metadata][index]}-%{+YYYY.MM.dd}"
+    if [@metadata][index] == 'fw' {
+        elasticsearch {
+            id => "fw_sink"
+            hosts => "http://${DB_HOST}:${DB_PORT}"
+            index => "fw-%{+YYYY.MM.dd}"
+            manage_template => true
+            template => "<%= $root_dir %>/config/tpl-fw.json"
+            template_name => "cflogsink_fw"
+            template_overwrite => true
+        }
+    } else if [@metadata][index] == 'access' {
+        elasticsearch {
+            id => "access_sink"
+            hosts => "http://${DB_HOST}:${DB_PORT}"
+            index => "access-%{+YYYY.MM.dd}"
+            manage_template => true
+            template => "<%= $root_dir %>/config/tpl-access.json"
+            template_name => "cflogsink_access"
+            template_overwrite => true
+        }
+    } else if [@metadata][index] == 'log' {
+        elasticsearch {
+            id => "log_sink"
+            hosts => "http://${DB_HOST}:${DB_PORT}"
+            index => "log-%{+YYYY.MM.dd}"
+            manage_template => true
+            template => "<%= $root_dir %>/config/tpl-log.json"
+            template_name => "cflogsink_log"
+            template_overwrite => true
+        }
+    } else {
+        elasticsearch {
+            id => "discard_sink"
+            hosts => "http://${DB_HOST}:${DB_PORT}"
+            index => "logstash-%{+YYYY.MM.dd}"
+            manage_template => true
+            template_overwrite => true
+        }
     }
 }

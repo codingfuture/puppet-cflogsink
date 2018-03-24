@@ -8,7 +8,7 @@ What it does:
 
 * Use ElasticSearch+Logstash stack for centralized log sink.
     * Advanced tuning for all cf* modules.
-    * Dedicated system log, HTTP access log and firewall logs.
+    * Dedicated strictly types system log, HTTP access log and firewall log indexes.
     * Special handling of various log format cases.
     * Optimized storage field.
     * Special handling of known message formats to minimize noise.
@@ -24,7 +24,7 @@ What it does:
     * Help for cases when Kibana gets broken or not available
     * Mimics ordinary log file output
     * Supports simple queries for filtering
-
+* Kibana installation is provided in [cfwebapp](https://forge.puppet.com/codingfuture/cfwebapp) module.
 
 ## Technical Support
 

@@ -1,10 +1,11 @@
 
 # (next)
-- CHANGED: strip of app name & most kv.* fields in firewall
+- CHANGED: strip of app name & most kv.* fields in firewall logs
 - FIXED: to show app name in cflog_* tool
 - FIXED: minor Puppet warnings
 - FIXED: missing geoip.location field
 - NEW: in/out/blacklist/forward tagging of firewall logs
+- NEW: custom elasticsearch templates for each log type
 
 # 0.12.2 (2018-03-19)
 - CHANGED: to use cf_notify for warnings

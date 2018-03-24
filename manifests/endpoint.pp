@@ -163,7 +163,30 @@ define cflogsink::endpoint (
         owner   => $user,
         group   => $user,
         mode    => '0640',
-        content => epp(pick($config, "cflogsink/${type}_default.conf")),
+        content => epp(pick($config, "cflogsink/${type}_default.conf"), {
+            root_dir => $root_dir,
+        }),
+        notify  => Service[ $service_name ],
+    }
+    -> file { "${root_dir}/config/tpl-access.json":
+        owner   => $user,
+        group   => $user,
+        mode    => '0640',
+        content => file('cflogsink/access-template-es6x.json'),
+        notify  => Service[ $service_name ],
+    }
+    -> file { "${root_dir}/config/tpl-fw.json":
+        owner   => $user,
+        group   => $user,
+        mode    => '0640',
+        content => file('cflogsink/fw-template-es6x.json'),
+        notify  => Service[ $service_name ],
+    }
+    -> file { "${root_dir}/config/tpl-log.json":
+        owner   => $user,
+        group   => $user,
+        mode    => '0640',
+        content => file('cflogsink/log-template-es6x.json'),
         notify  => Service[ $service_name ],
     }
     -> cflogsink_endpoint { $title:

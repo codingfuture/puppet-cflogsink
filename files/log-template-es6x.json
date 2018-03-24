@@ -1,0 +1,28 @@
+{
+    "template" : "access-*",
+    "version" : 60001,
+    "settings" : {
+        "index.refresh_interval" : "5s"
+    },
+    "mappings" : {
+        "_doc" : {
+            "_source" : {
+                "enable" : false
+            },
+            "date_detection" : false,
+            "dynamic" : false,
+            "properties" : {
+                "@timestamp": { "type": "date" },
+                "@version": { "type": "keyword" },
+                "app": { "type": "keyword" },
+                "facility": { "type": "keyword" },
+                "host": { "type": "keyword" },
+                "msg": { "type": "text", "norms": false },
+                "pid": { "type": "integer" },
+                "severity": { "type": "keyword" },
+                "src": { "type": "text", "norms": false },
+                "tags" : { "type" : "keyword", "index_name" : "tag" }
+            }
+        }
+    }
+}

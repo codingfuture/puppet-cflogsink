@@ -1,0 +1,61 @@
+{
+    "template" : "access-*",
+    "version" : 60001,
+    "settings" : {
+        "index.refresh_interval" : "5s"
+    },
+    "mappings" : {
+        "_doc" : {
+            "_source" : {
+                "enable" : false
+            },
+            "date_detection" : false,
+            "dynamic" : false,
+            "properties" : {
+                "@timestamp": { "type": "date" },
+                "@version": { "type": "keyword" },
+                "agent": { "type": "text", "norms": false },
+                "app": { "type": "keyword" },
+                "auth": { "type": "keyword" },
+                "bytes": { "type": "integer" },
+                "clientip": { "type": "ip" },
+                "duration": { "type": "half_float" },
+                "geoip"  : {
+                    "properties" : {
+                        "dynamic" : false,
+                        "country_code3": { "type": "keyword" },
+                        "location" : { "type" : "geo_point" },
+                        "latitude" : { "type" : "half_float" },
+                        "longitude" : { "type" : "half_float" },
+                        "timezone" : { "type" : "keyword" }
+                    }
+                },
+                "host": { "type": "keyword" },
+                "httpversion": { "type": "keyword" },
+                "ident": { "type": "keyword" },
+                "referrer": { "type": "text", "norms": false },
+                "request": { "type": "text", "norms": false },
+                "response": { "type": "short" },
+                "src": { "type": "text", "norms": false },
+                "tags" : { "type" : "keyword", "index_name" : "tag" },
+                "ua" : {
+                    "properties" : {
+                        "dynamic" : false,
+                        "build" : { "type": "text", "norms": false },
+                        "device" : { "type": "keyword" },
+                        "major" : { "type": "keyword" },
+                        "minor" : { "type": "keyword" },
+                        "name" : { "type": "keyword" },
+                        "os" : { "type": "keyword" },
+                        "os_major" : { "type": "keyword" },
+                        "os_minor" : { "type": "keyword" },
+                        "os_name" : { "type": "keyword" }
+                    }
+                },
+                "verb": { "type": "keyword" },
+                "vhost": { "type": "keyword" },
+                "vport": { "type": "short" }
+            }
+        }
+    }
+}

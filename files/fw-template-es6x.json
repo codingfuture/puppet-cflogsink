@@ -1,0 +1,47 @@
+{
+    "template" : "access-*",
+    "version" : 60001,
+    "settings" : {
+        "index.refresh_interval" : "5s"
+    },
+    "mappings" : {
+        "_doc" : {
+            "_source" : {
+                "enable" : false
+            },
+            "date_detection" : false,
+            "dynamic" : false,
+            "properties" : {
+                "@timestamp": { "type": "date" },
+                "@version": { "type": "keyword" },
+                "app": { "type": "keyword" },
+                "geoip"  : {
+                    "properties" : {
+                        "dynamic" : false,
+                        "country_code3": { "type": "keyword" },
+                        "location" : { "type" : "geo_point" },
+                        "latitude" : { "type" : "half_float" },
+                        "longitude" : { "type" : "half_float" },
+                        "timezone" : { "type" : "keyword" }
+                    }
+                },
+                "host": { "type": "keyword" },
+                "kv": {
+                    "dynamic" : false,
+                    "properties" : {
+                        "PROTO": { "type": "keyword" },
+                        "DST": { "type": "ip" },
+                        "DPT": { "type": "integer" },
+                        "SRC": { "type": "ip" },
+                        "SPT": { "type": "integer" },
+                        "IN": { "type": "integer" },
+                        "OUT": { "type": "integer" }
+                    }
+                },
+                "msg": { "type": "text", "norms": false },
+                "src": { "type": "text", "norms": false },
+                "tags" : { "type" : "keyword", "index_name" : "tag" }
+            }
+        }
+    }
+}
