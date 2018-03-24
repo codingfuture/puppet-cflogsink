@@ -136,6 +136,7 @@ filter {
         geoip {
             cache_size => 10000
             fields => [
+                'location',
                 'country_code3',
                 'latitude',
                 'longitude',

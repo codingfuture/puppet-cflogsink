@@ -2,6 +2,7 @@
 # (next)
 - FIXED: to show app name in cflog_* tool
 - FIXED: minor Puppet warnings
+- FIXED: missing geoip.location field
 
 # 0.12.2 (2018-03-19)
 - CHANGED: to use cf_notify for warnings
