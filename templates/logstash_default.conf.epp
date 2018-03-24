@@ -114,6 +114,7 @@ filter {
                 '[@metadata][index]' => 'fw'
             }
             remove_field => [
+                'app',
                 'pid',
                 'severity',
                 'facility'
@@ -122,6 +123,17 @@ filter {
         kv {
             source => 'msg'
             target => 'kv'
+            include_keys => [ 'PROTO', 'DST', 'DPT', 'SRC', 'SPT', 'IN', 'OUT' ]
+        }
+
+        if [msg] =~ /^BLACKLIST-/ {
+            mutate { add_tag => 'blacklist'  }
+        } else if [msg] =~ /^IN-/ {
+            mutate { add_tag => 'input'  }
+        } else if [msg] =~ /^OUT-/ {
+            mutate { add_tag => 'output'  }
+        } else if [msg] =~ /^PASS-/ {
+            mutate { add_tag => 'forward'  }
         }
     }
 
