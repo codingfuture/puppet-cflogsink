@@ -278,7 +278,6 @@ output {
             id => "fw_sink"
             hosts => "http://${DB_HOST}:${DB_PORT}"
             index => "fw-%{+YYYY.MM.dd}"
-            document_type => "_doc"
             manage_template => true
             template => "<%= $root_dir %>/config/tpl-fw.json"
             template_name => "cflogsink_fw"
@@ -289,7 +288,6 @@ output {
             id => "access_sink"
             hosts => "http://${DB_HOST}:${DB_PORT}"
             index => "access-%{+YYYY.MM.dd}"
-            document_type => "_doc"
             manage_template => true
             template => "<%= $root_dir %>/config/tpl-access.json"
             template_name => "cflogsink_access"
@@ -300,7 +298,6 @@ output {
             id => "log_sink"
             hosts => "http://${DB_HOST}:${DB_PORT}"
             index => "log-%{+YYYY.MM.dd}"
-            document_type => "_doc"
             manage_template => true
             template => "<%= $root_dir %>/config/tpl-log.json"
             template_name => "cflogsink_log"

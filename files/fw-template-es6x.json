@@ -5,7 +5,7 @@
         "index.refresh_interval" : "5s"
     },
     "mappings" : {
-        "_doc" : {
+        "_default_" : {
             "_source" : {
                 "enabled" : false
             },
