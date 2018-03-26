@@ -1,6 +1,6 @@
 {
   "name": "codingfuture-cflogsink",
-  "version": "0.12.3",
+  "version": "1.0.0",
   "author": "Andrey Galkin",
   "summary": "Centralized logging",
   "license": "Apache-2.0",
