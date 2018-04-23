@@ -127,20 +127,22 @@ define cflogsink::endpoint (
         user => [ $user, 'root' ],
     }
 
-    $access_ipset = "cflog_${title}_access"
-    cfnetwork::ipset { $access_ipset:
-        addr => ['ipset:localnet'] + $extra_clients,
-    }
-    cfnetwork::service_port { "${iface}:${user}":
-        src => ["ipset:${access_ipset}"],
-    }
+    if $iface != 'local' {
+        $access_ipset = "cflog_${title}_access"
+        cfnetwork::ipset { $access_ipset:
+            addr => ['ipset:localnet'] + $extra_clients,
+        }
+        cfnetwork::service_port { "${iface}:${user}":
+            src => ["ipset:${access_ipset}"],
+        }
 
-    $ipset_secure_clients = "cflog_${title}_tlsaccess"
-    cfnetwork::ipset { $ipset_secure_clients:
-        addr => $secure_client_hosts.sort() + $extra_secure_clients,
-    }
-    cfnetwork::service_port { "${iface}:${user}_tls":
-        src => "ipset:${ipset_secure_clients}",
+        $ipset_secure_clients = "cflog_${title}_tlsaccess"
+        cfnetwork::ipset { $ipset_secure_clients:
+            addr => $secure_client_hosts.sort() + $extra_secure_clients,
+        }
+        cfnetwork::service_port { "${iface}:${user}_tls":
+            src => "ipset:${ipset_secure_clients}",
+        }
     }
 
     #---
