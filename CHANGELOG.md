@@ -1,5 +1,6 @@
 # (next)
 - FIXED: missing module hiera.yaml
+- FIXED: multiple logstash instance DB access name conflict
 
 # 0.12.3 (2018-03-24)
 - CHANGED: strip of app name & most kv.* fields in firewall logs

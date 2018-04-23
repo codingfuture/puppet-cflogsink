@@ -148,7 +148,7 @@ define cflogsink::endpoint (
         create_resources(
             'cfdb::access',
             {
-                main  => {
+                "${service_name}"  => {
                     local_user      => $user,
                     use_unix_socket => false,
                     notify          => Cflogsink_endpoint[ $title  ],
