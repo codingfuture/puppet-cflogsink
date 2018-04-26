@@ -2,6 +2,7 @@
 - FIXED: missing module hiera.yaml
 - FIXED: multiple logstash instance DB access name conflict
 - FIXED: manifest error when logstash is bound to 'local' iface
+- FIXED: rsyslog.conf parsing issue logstash endpoint and secure clients
 
 # 0.12.3 (2018-03-24)
 - CHANGED: strip of app name & most kv.* fields in firewall logs
