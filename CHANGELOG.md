@@ -1,4 +1,4 @@
-# (next)
+# 1.0.1 (2018-04-29)
 - FIXED: missing module hiera.yaml
 - FIXED: multiple logstash instance DB access name conflict
 - FIXED: manifest error when logstash is bound to 'local' iface
