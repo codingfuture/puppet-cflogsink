@@ -36,12 +36,13 @@ fi
 [ -n "${size}" ] && shift
 
 case $index in
-    access*) jqf='[ .["@timestamp"], .client_ip, .response, .duration, .vhost, "\(.verb) \(.request)" ]';;
+    access*) jqf='[ .["@timestamp"], .clientip, .response, .duration, .vhost, "\(.verb) \(.request)" ]';;
     fw*) jqf='[ .["@timestamp"], .host, .msg ]';;
     *) jqf='[ .["@timestamp"], .host, .severity, .app, .msg ]';;
 esac
 
-/usr/bin/curl -s "http://${DB_HOST}:${DB_PORT}/${index}/_search?sort=@timestamp:desc&size=${size:-10000}&from=${from:-0}${query}" "$@" \
+url="http://${DB_HOST}:${DB_PORT}/${index}/_search?sort=@timestamp:desc&size=${size:-10000}&from=${from:-0}${query}"
+/usr/bin/curl -s "${url}" "$@" \
     | /usr/bin/jq -r ".hits.hits[]._source | ${jqf} | @tsv" 2>&1 \
     | /usr/bin/tac \
     | /usr/bin/less -S +G
