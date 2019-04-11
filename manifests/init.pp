@@ -43,11 +43,12 @@ class cflogsink (
 
         $merged_config = merge(
             {
-                iface       => $cflogsink::iface,
-                type        => 'logstash',
-                port        => 2514,
-                secure_port => 3514,
-                dbaccess    => {
+                iface         => $cflogsink::iface,
+                type          => 'logstash',
+                port          => 2514,
+                secure_port   => 3514,
+                internal_port => 4514,
+                dbaccess      => {
                     cluster => 'logsink',
                 },
             },
@@ -67,12 +68,13 @@ class cflogsink (
                 'parameters' => {
                     'settings_tune' => {
                         'cflogsink' => {
-                            'listen'      => $merged_iface ? {
+                            'listen'       => $merged_iface ? {
                                 'any'   => undef,
                                 default => cfnetwork::bind_address($merged_iface),
                             },
-                            'port'        => $merged_config['port'],
-                            'secure_port' => $merged_config['secure_port'],
+                            'port'          => $merged_config['port'],
+                            'secure_port'   => $merged_config['secure_port'],
+                            'internal_port' => $merged_config['internal_port'],
                         },
                     },
                     'location' => $cfsystem::location,

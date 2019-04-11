@@ -3,11 +3,24 @@
 | -%>
 
 input {
-    relp {
-        id => "plain_relp"
-        port => "${CF_PORT}"
+    # NOTE: syslog plugin has issues with RFC5424
+    tcp {
+        id => "plain_syslog"
+        host => "${CF_INTERNAL_HOST}"
+        port => "${CF_INTERNAL_PORT}"
         type => "syslog"
+        codec => plain {
+            charset => "ISO-8859-1"
+        }
     }
+
+    # NOTE: it causes constant troubles :(
+    #
+    # relp {
+    #    id => "plain_relp"
+    #    port => "${CF_PORT}"
+    #    type => "syslog"
+    # }
 
     # NOTE: LogStash+OpenSSL does not work well with rsyslog+gnutls!
     #
@@ -74,37 +87,55 @@ filter {
             mutate { add_tag => 'error' }
         }
 
+        # Sanitize
+        mutate {
+            gsub => [
+                'message', '[^[:print:]]', ' '
+            ]
+        }
+
         grok {
-            match => { "message" => "%{SYSLOG5424LINE}" }
+            break_on_match => true
+            match => [ 
+                "message", "%{SYSLOG5424LINE}",
+                "message", "%{SYSLOG5424PRI}%{NONNEGINT:syslog5424_ver} +(?:%{TIMESTAMP_ISO8601:syslog5424_ts}|-) +(?:%{IPORHOST:syslog5424_host}|-) +(-|%{SYSLOG5424PRINTASCII:syslog5424_app}) +(-|%{SYSLOG5424PRINTASCII:syslog5424_proc}) +(-|%{SYSLOG5424PRINTASCII:syslog5424_msgid})+%{GREEDYDATA:syslog5424_msg}"
+            ]
             remove_field => [
                 "syslog5424_pri",
                 "syslog5424_ver"
             ]
         }
-        mutate {
-            remove_field => [
-                "message",
-                "type",
-                "syslog_severity_code"
-            ]
-            rename => {
-                "syslog_severity" => "severity"
-                "syslog_facility" => "facility"
-                "syslog5424_msg" => "msg"
-                "syslog5424_proc" => "pid"
-                "syslog5424_app" => "app"
-                "host" => "src"
-                "syslog5424_host" => "host"
-                #"message" => "orig"
+
+        if '_grokparsefailure' in [tags] {
+            mutate {
+                rename => {
+                    "message" => "msg"
+                }
+                add_tag => 'error'
             }
-            gsub => [
-                # Remove trailing newline
-                'msg', '\n$', ''
-            ]
-        }
-        date {
-            match => [ "syslog5424_ts", "ISO8601" ]
-            remove_field => [ "syslog5424_ts" ]
+        } else {
+            mutate {
+                remove_field => [
+                    "message",
+                    "type",
+                    "syslog_severity_code"
+                ]
+                rename => {
+                    "syslog_severity" => "severity"
+                    "syslog_facility" => "facility"
+                    "syslog5424_msg" => "msg"
+                    "syslog5424_proc" => "pid"
+                    "syslog5424_app" => "app"
+                    "host" => "src"
+                    "syslog5424_host" => "host"
+                    #"message" => "orig"
+                }
+                strip => [ 'msg' ]
+            }
+            date {
+                match => [ "syslog5424_ts", "ISO8601" ]
+                remove_field => [ "syslog5424_ts" ]
+            }
         }
     }
 

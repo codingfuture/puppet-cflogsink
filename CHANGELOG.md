@@ -1,5 +1,6 @@
 
 # (next)
+- CHANGED: to terminate RELP in rsyslog for all cases
 - FIXED: cflog_{} access to properly show clientip
 
 # 1.1.0 (2018-12-09)

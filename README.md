@@ -124,6 +124,7 @@ Configure log sink endpoint.
 * `$iface = $cflogsink::iface` - interface to bind.
 * `$port = undef` - port to use for insecure connections.
 * `$secure_port = undef` - port to use for TLS connections.
+* `$internal_port = undef` - port to use for internal connections.
 * `$dbaccess = undef` - database acccess (e.g. Elasticsearch for Logstash).
 * `$extra_clients = []` - extra list of insecure clients (for cfnetwork::ipset).
 * `$extra_secure_clients = []` - extra list of secure clients (for cfnetwork::ipset).

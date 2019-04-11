@@ -96,6 +96,9 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
 
         #---
         port = cflogsink_settings['port']
+        internal_port = cflogsink_settings['internal_port']
+        listen = cflogsink_settings['listen']
+        internal_listen = cflogsink_settings['internal_listen']
         secure_port = cflogsink_settings['secure_port']
         control_port = cflogsink_settings['control_port']
         
@@ -172,7 +175,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
                 'ExecReload' => '/bin/kill -HUP $MAINPID',
                 'ExecStart' => "/usr/share/logstash/bin/logstash --path.settings #{conf_dir} -f #{conf_dir}/pipeline.conf",
                 'LimitNOFILE' => '16384',
-                'ExecStartPost' => "#{PuppetX::CfSystem::WAIT_SOCKET_BIN} #{port} #{start_timeout}",
+                'ExecStartPost' => "#{PuppetX::CfSystem::WAIT_SOCKET_BIN} #{internal_port} #{start_timeout}",
                 'WorkingDirectory' => '/',
                 'TimeoutStartSec' => "#{start_timeout}",
                 'TimeoutStopSec' => "60",
@@ -182,6 +185,9 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
         
         content_env = {
             'CF_PORT' => port,
+            'CF_INTERNAL_PORT' => internal_port,
+            'CF_HOST' => listen,
+            'CF_INTERNAL_HOST' => internal_listen,
             #'CF_SECURE_PORT' => secure_port,
             #'CF_TLS_CACERT' => "#{root_dir}/pki/puppet/ca.crt",
             #'CF_TLS_CERT' => "#{root_dir}/pki/puppet/local.crt",

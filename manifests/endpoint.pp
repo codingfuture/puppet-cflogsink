@@ -28,6 +28,8 @@ define cflogsink::endpoint (
         $port = undef,
     Optional[Cfnetwork::Port]
         $secure_port = undef,
+    Optional[Cfnetwork::Port]
+        $internal_port = undef,
 
     Optional[ Hash[String[1],Any] ]
         $dbaccess = undef,
@@ -91,6 +93,7 @@ define cflogsink::endpoint (
     } else {
         $listen = cfnetwork::bind_address($iface)
     }
+    $internal_listen = '127.0.0.1'
 
     #---
     $secure_clients = cfsystem::query([
@@ -113,6 +116,7 @@ define cflogsink::endpoint (
 
     $fact_port = cfsystem::gen_port($service_name, $port)
     $fact_secure_port = cfsystem::gen_port("${service_name}:secure", $secure_port)
+    $fact_internal_port = cfsystem::gen_port("${service_name}:internal", pick_default($internal_port, $fact_port))
     $fact_control_port = cfsystem::gen_port("${service_name}:control")
 
     ensure_resource('cfnetwork::describe_service', $user, {
@@ -121,8 +125,15 @@ define cflogsink::endpoint (
     ensure_resource('cfnetwork::describe_service', "${user}_tls", {
         server => "tcp/${fact_secure_port}",
     })
+    ensure_resource('cfnetwork::describe_service', "${user}_internal", {
+        server => "tcp/${fact_internal_port}",
+    })
 
+    cfnetwork::service_port { "local:${user}_internal": }
     cfnetwork::service_port { "local:${user}": }
+    cfnetwork::client_port { "local:${user}_internal":
+        user => [ $user, 'root' ],
+    }
     cfnetwork::client_port { "local:${user}":
         user => [ $user, 'root' ],
     }
@@ -209,13 +220,15 @@ define cflogsink::endpoint (
             {
                 cflogsink => merge(
                     {
-                        'listen'   => $listen,
+                        'listen'          => $listen,
+                        'internal_listen' => $internal_listen,
                     },
                     pick($settings_tune['cflogsink'], {}),
                     {
-                        'port'         => $fact_port,
-                        'secure_port'  => $fact_secure_port,
-                        'control_port' => $fact_control_port,
+                        'port'          => $fact_port,
+                        'secure_port'   => $fact_secure_port,
+                        'internal_port' => $fact_internal_port,
+                        'control_port'  => $fact_control_port,
                     },
                 )
             }
@@ -238,15 +251,13 @@ define cflogsink::endpoint (
     #---
     include cflogsink::internal::imrelpmodule
 
-    file { "/etc/rsyslog.d/49_${service_name}.conf":
+    file { "/etc/rsyslog.d/48_${service_name}.conf":
         mode    => '0640',
-        content => epp('cflogsink/imrelp.conf.epp', {
+        content => epp('cflogsink/omfwd.conf.epp', {
             service_name => $service_name,
-            listen       => pick($listen, '0.0.0.0'),
-            port         => $fact_secure_port,
-            target       => pick($listen, '127.0.0.1'),
-            target_port  => $fact_port,
-            tune         => {
+            target       => pick($internal_listen, '127.0.0.1'),
+            target_port  => $fact_internal_port,
+            tune         => merge( {
                 'queue.size'             => 10000,
                 'queue.dequeuebatchsize' => 1000,
                 'queue.maxdiskspace'     => '1g',
@@ -254,19 +265,47 @@ define cflogsink::endpoint (
                 'queue.saveonshutdown'   => 'on',
                 'queue.type'             => 'LinkedList',
                 'queue.filename'         => $service_name,
-                'maxdatasize'            => '128k',
-                'tls'                    => 'on',
-                'tls.compression'        => 'on',
-                'tls.dhbits'             => 2048,
-                'tls.authmode'           => 'name',
-                'tls.permittedpeer'      => $secure_client_hosts,
-                'tls.cacert'             => '/etc/puppetlabs/puppet/ssl/certs/ca.pem',
-                'tls.mycert'             => "/etc/puppetlabs/puppet/ssl/certs/${::facts['fqdn']}.pem",
-                'tls.myprivkey'          => "/etc/puppetlabs/puppet/ssl/private_keys/${::facts['fqdn']}.pem",
-                'keepalive'              => 'on',
-                'keepalive.interval'     => 30,
-                'keepalive.time'         => 30,
-            }
+            }, pick($settings_tune['cfomwd'], {}) ),
+        }),
+    }
+    ~> Exec['cflogsink:rsyslog:refresh']
+
+    file { "/etc/rsyslog.d/49_${service_name}_plain.conf":
+        mode    => '0640',
+        content => epp('cflogsink/imrelp.conf.epp', {
+            service_name => $service_name,
+            listen       => pick($listen, '0.0.0.0'),
+            port         => $fact_port,
+            tune         => {
+                'maxdatasize'        => '128k',
+                'keepalive'          => 'on',
+                'keepalive.interval' => 30,
+                'keepalive.time'     => 30,
+            },
+        }),
+    }
+    ~> Exec['cflogsink:rsyslog:refresh']
+
+    file { "/etc/rsyslog.d/49_${service_name}_tls.conf":
+        mode    => '0640',
+        content => epp('cflogsink/imrelp.conf.epp', {
+            service_name => $service_name,
+            listen       => pick($listen, '0.0.0.0'),
+            port         => $fact_secure_port,
+            tune         => {
+                'maxdatasize'        => '128k',
+                'tls'                => 'on',
+                'tls.compression'    => 'on',
+                'tls.dhbits'         => 2048,
+                'tls.authmode'       => 'name',
+                'tls.permittedpeer'  => $secure_client_hosts,
+                'tls.cacert'         => '/etc/puppetlabs/puppet/ssl/certs/ca.pem',
+                'tls.mycert'         => "/etc/puppetlabs/puppet/ssl/certs/${::facts['fqdn']}.pem",
+                'tls.myprivkey'      => "/etc/puppetlabs/puppet/ssl/private_keys/${::facts['fqdn']}.pem",
+                'keepalive'          => 'on',
+                'keepalive.interval' => 30,
+                'keepalive.time'     => 30,
+            },
         }),
     }
     ~> Exec['cflogsink:rsyslog:refresh']
