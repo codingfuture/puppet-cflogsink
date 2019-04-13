@@ -2,6 +2,7 @@
 # (next)
 - CHANGED: to terminate RELP in rsyslog for all cases
 - FIXED: cflog_{} access to properly show clientip
+- FIXED: to use the latest rsyslog for imrelp endpoint (MSGID corruption fix)
 
 # 1.1.0 (2018-12-09)
 - CHANGED: updated for Ubuntu 18.04 Bionic support

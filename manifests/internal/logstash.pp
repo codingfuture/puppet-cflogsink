@@ -21,7 +21,7 @@ class cflogsink::internal::logstash (
 
     #---
     $all_plugins = $plugins + [
-        'logstash-input-syslog',
+        #'logstash-input-syslog',
         #'',
     ]
 

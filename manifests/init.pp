@@ -18,7 +18,7 @@ class cflogsink (
     $centralized = !!$target
 
     #---
-    ensure_resource('package', 'rsyslog')
+    include cflogsink::rsyslog
     Package['rsyslog']
     ->exec { 'cflogsink:rsyslog:refresh':
         command     => '/bin/systemctl reload-or-restart rsyslog.service',

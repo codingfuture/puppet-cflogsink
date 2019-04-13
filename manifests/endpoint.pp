@@ -249,6 +249,7 @@ define cflogsink::endpoint (
     }
 
     #---
+    include cflogsink::rsyslog
     include cflogsink::internal::imrelpmodule
 
     file { "/etc/rsyslog.d/48_${service_name}.conf":
