@@ -9,9 +9,6 @@ input {
         host => "${CF_INTERNAL_HOST}"
         port => "${CF_INTERNAL_PORT}"
         type => "syslog"
-        codec => plain {
-            charset => "ISO-8859-1"
-        }
     }
 
     # NOTE: it causes constant troubles :(
@@ -85,13 +82,6 @@ filter {
 
         if [syslog_severity_code] <= 3 {
             mutate { add_tag => 'error' }
-        }
-
-        # Sanitize
-        mutate {
-            gsub => [
-                'message', '[^[:print:]]', ' '
-            ]
         }
 
         grok {
