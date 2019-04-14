@@ -1,6 +1,7 @@
 
 # (next)
 - CHANGED: to terminate RELP in rsyslog for all cases
+- CHANGED: got rid of historical cf-apt-update workaround
 - FIXED: cflog_{} access to properly show clientip
 - FIXED: to use the latest rsyslog for imrelp endpoint (MSGID corruption fix)
 

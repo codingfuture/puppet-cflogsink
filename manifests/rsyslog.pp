@@ -7,10 +7,10 @@ class cflogsink::rsyslog(
 ) {
     case $::operatingsystem {
         'Debian': {
-            class { 'cflogsink::rsyslog::debianapt': stage => 'cf-apt-setup' }
+            class { 'cflogsink::rsyslog::debianapt': stage => 'setup' }
         }
         'Ubuntu': {
-            class { 'cflogsink::rsyslog::ubuntuapt': stage => 'cf-apt-setup' }
+            class { 'cflogsink::rsyslog::ubuntuapt': stage => 'setup' }
         }
         default: { fail("Not supported OS ${::operatingsystem}") }
     }

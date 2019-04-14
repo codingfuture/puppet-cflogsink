@@ -35,13 +35,11 @@ VhMkPOtyX5joVHQPM/+xvpqAJKhuj+bSTGullYduGsQ=
 ',
         }
         apt::source { 'rsyslog':
-            location      => $apt_url,
-            release       => $release,
-            repos         => 'main',
-            pin           => $cfsystem::apt_pin + 1,
-            notify_update => false,
-            notify        => Exec['cf-apt-update'],
-            require       => Apt::Key['rsyslog'],
+            location => $apt_url,
+            release  => $release,
+            repos    => 'main',
+            pin      => $cfsystem::apt_pin + 1,
+            require  => Apt::Key['rsyslog'],
         }
     }
 }

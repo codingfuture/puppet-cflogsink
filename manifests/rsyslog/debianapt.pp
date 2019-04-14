@@ -55,13 +55,11 @@ VpSCqs9D451g
 ',
         }
         apt::source { 'rsyslog':
-            location      => $apt_url,
-            release       => $release,
-            repos         => '/',
-            pin           => $cfsystem::apt_pin + 1,
-            notify_update => false,
-            notify        => Exec['cf-apt-update'],
-            require       => Apt::Key['rsyslog'],
+            location => $apt_url,
+            release  => $release,
+            repos    => '/',
+            pin      => $cfsystem::apt_pin + 1,
+            require  => Apt::Key['rsyslog'],
         }
     }
 }
