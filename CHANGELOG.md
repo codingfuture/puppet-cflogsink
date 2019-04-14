@@ -1,5 +1,5 @@
 
-# (next)
+# 1.3.0 (2019-04-14)
 - CHANGED: to terminate RELP in rsyslog for all cases
 - CHANGED: got rid of historical cf-apt-update workaround
 - FIXED: cflog_{} access to properly show clientip
