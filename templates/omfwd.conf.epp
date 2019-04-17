@@ -1,5 +1,5 @@
 <% |
-    String[1] $service_name,
+    String[1] $rule_name,
     String[1] $target,
     Integer[1] $target_port,
     Hash $tune,
@@ -9,7 +9,7 @@
 #----
 
 ruleset(
-    name="<%= $service_name %>"
+    name="<%= $rule_name %>"
     parser=["rsyslog.rfc5424"]
 <%
 $tune.each | $k, $v | {

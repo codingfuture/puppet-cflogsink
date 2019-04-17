@@ -13,6 +13,7 @@ class cflogsink (
     Optional[Boolean]
         $tls = undef,
 ) inherits cflogsink::internal::defaults {
+    include cfnetwork
     include cfsystem
 
     $centralized = !!$target
@@ -41,10 +42,18 @@ class cflogsink (
             $server_conf = {}
         }
 
+        if $target != $::facts['fqdn'] {
+            $server_type = 'proxy'
+            $endpoint_name = 'proxy'
+        } else {
+            $server_type = 'logstash'
+            $endpoint_name = 'main'
+        }
+
         $merged_config = merge(
             {
                 iface         => $cflogsink::iface,
-                type          => 'logstash',
+                type          => $server_type,
                 port          => 2514,
                 secure_port   => 3514,
                 internal_port => 4514,
@@ -57,7 +66,7 @@ class cflogsink (
 
         create_resources(
             'cflogsink::endpoint',
-            { main => $merged_config }
+            { $endpoint_name => $merged_config }
         )
     }
 
@@ -65,51 +74,52 @@ class cflogsink (
         if $target == $::facts['fqdn'] and $server {
             $merged_iface = $merged_config['iface']
             $sink = [{
-                'parameters' => {
-                    'settings_tune' => {
-                        'cflogsink' => {
-                            'listen'       => $merged_iface ? {
-                                'any'   => undef,
-                                default => cfnetwork::bind_address($merged_iface),
-                            },
-                            'port'          => $merged_config['port'],
-                            'secure_port'   => $merged_config['secure_port'],
-                            'internal_port' => $merged_config['internal_port'],
-                        },
+                'parameters' => merge({
+                    'listen'        => $merged_iface ? {
+                        'any'   => undef,
+                        default => cfnetwork::bind_address($merged_iface),
                     },
-                    'location' => $cfsystem::location,
-                }
+                    'location'      => $cfnetwork::location,
+                    'location_pool' => $cfnetwork::location_pool,
+                }, $merged_config)
             }]
         } else {
             $sink = cfsystem::query([
                 'from', 'resources', ['extract', [ 'parameters' ],
                     ['and',
-                        ['=', 'type', 'Cflogsink_endpoint'],
+                        ['=', 'type', 'Cflogsink::Internal::Endpoint'],
                         ['=', 'certname', $target],
-                        ['=', 'title', 'main'],
                     ],
             ]])
         }
 
         if $sink.size > 0 {
             $target_params = $sink[0]['parameters']
-            $target_tune = $target_params['settings_tune']['cflogsink']
 
-            $target_tls = pick(
+            if $cfnetwork::hosts_locality == 'pool' {
+                $target_tls_default = (
+                    $cfnetwork::location != $target_params['location']
+                    or
+                    $cfnetwork::location_pool != $target_params['location_pool']
+                )
+            } else {
+                $target_tls_default = ($cfnetwork::location != $target_params['location'])
+            }
+
+            $target_tls = pick_default(
                 $tls,
-                ($cfsystem::location != $target_params['location'])
+                $target_tls_default
             )
 
-            # rsyslog is used for TLS input
-            #$target_tls_compress = ( $target_params['type'] != 'logstash' )
+            # Enable unconditionally
             $target_tls_compress = true
 
             if $target_tls {
                 $target_host = $target
-                $target_port = $target_tune['secure_port']
+                $target_port = $target_params['secure_port']
             } else {
-                $target_host = pick( $target_tune['listen'], $target )
-                $target_port = $target_tune['port']
+                $target_host = pick( $target_params['listen'], $target )
+                $target_port = $target_params['port']
             }
 
             include cflogsink::client

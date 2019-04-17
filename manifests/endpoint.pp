@@ -4,7 +4,7 @@
 
 
 define cflogsink::endpoint (
-    Enum[ 'logstash' ]
+    Enum[ 'logstash', 'proxy' ]
         $type = 'logstash',
     Optional[String[1]]
         $config = undef,
@@ -42,49 +42,50 @@ define cflogsink::endpoint (
 ) {
     include cflogsink
     include "cflogsink::internal::${type}"
+    include cflogsink::rsyslog
+    include cflogsink::internal::imrelpmodule
 
     $service_name = "cf${type}-${title}"
-    $user = "${type}_${title}"
 
-    $root_dir = "/var/lib/${user}"
+    if $type != 'proxy' {
+        $user = "${type}_${title}"
 
-    #---
-    group { $user:
-        ensure => present,
-    }
+        $root_dir = "/var/lib/${user}"
 
-    user { $user:
-        ensure         => present,
-        gid            => $user,
-        home           => $root_dir,
-        system         => true,
-        shell          => '/bin/dash',
-        purge_ssh_keys => true,
-        require        => Group[$user],
-    }
+        #---
+        group { $user:
+            ensure => present,
+        }
+        -> user { $user:
+            ensure         => present,
+            gid            => $user,
+            home           => $root_dir,
+            system         => true,
+            shell          => '/bin/dash',
+            purge_ssh_keys => true,
+        }
 
-    #---
-    $user_dirs = [
-        $root_dir,
-        "${root_dir}/config",
-        "${root_dir}/logs",
-        "${root_dir}/data",
-    ]
-    file { $user_dirs:
-        ensure => directory,
-        owner  => $user,
-        group  => $user,
-        mode   => '0750',
-    }
-    # No need, as secure relp is done by rsyslog
-    #-> cfsystem::puppetpki{ $user: }
+        #---
+        $user_dirs = [
+            $root_dir,
+            "${root_dir}/config",
+            "${root_dir}/logs",
+            "${root_dir}/data",
+        ]
+        file { $user_dirs:
+            ensure => directory,
+            owner  => $user,
+            group  => $user,
+            mode   => '0750',
+        }
 
-    #---
-    cfsystem_memory_weight { $service_name:
-        ensure => present,
-        weight => $memory_weight,
-        min_mb => 256,
-        max_mb => $memory_max,
+        #---
+        cfsystem_memory_weight { $service_name:
+            ensure => present,
+            weight => $memory_weight,
+            min_mb => 256,
+            max_mb => $memory_max,
+        }
     }
 
     #---
@@ -93,7 +94,6 @@ define cflogsink::endpoint (
     } else {
         $listen = cfnetwork::bind_address($iface)
     }
-    $internal_listen = '127.0.0.1'
 
     #---
     $secure_clients = cfsystem::query([
@@ -116,168 +116,202 @@ define cflogsink::endpoint (
 
     $fact_port = cfsystem::gen_port($service_name, $port)
     $fact_secure_port = cfsystem::gen_port("${service_name}:secure", $secure_port)
-    $fact_internal_port = cfsystem::gen_port("${service_name}:internal", pick_default($internal_port, $fact_port))
-    $fact_control_port = cfsystem::gen_port("${service_name}:control")
 
-    ensure_resource('cfnetwork::describe_service', $user, {
+    $fw_service = "cflog_${title}"
+
+    ensure_resource('cfnetwork::describe_service', $fw_service, {
         server => "tcp/${fact_port}",
     })
-    ensure_resource('cfnetwork::describe_service', "${user}_tls", {
+    ensure_resource('cfnetwork::describe_service', "${fw_service}_tls", {
         server => "tcp/${fact_secure_port}",
     })
-    ensure_resource('cfnetwork::describe_service', "${user}_internal", {
-        server => "tcp/${fact_internal_port}",
-    })
 
-    cfnetwork::service_port { "local:${user}_internal": }
-    cfnetwork::service_port { "local:${user}": }
-    cfnetwork::client_port { "local:${user}_internal":
-        user => [ $user, 'root' ],
+    cfnetwork::service_port { "local:${fw_service}": }
+    cfnetwork::client_port { "local:${fw_service}":
+        user => [ 'root' ],
     }
-    cfnetwork::client_port { "local:${user}":
-        user => [ $user, 'root' ],
+
+    cflogsink::internal::endpoint { $title:
+        type          => $type,
+        location      => $cfnetwork::location,
+        location_pool => $cfnetwork::location_pool,
+        listen        => $listen,
+        port          => $fact_port,
+        secure_port   => $fact_secure_port,
     }
 
     if $iface != 'local' {
-        $access_ipset = "cflog_${title}_access"
+        $access_ipset = "${fw_service}_access"
         cfnetwork::ipset { $access_ipset:
             addr => ['ipset:localnet'] + $extra_clients,
         }
-        cfnetwork::service_port { "${iface}:${user}":
+        cfnetwork::service_port { "${iface}:${fw_service}":
             src => ["ipset:${access_ipset}"],
         }
 
-        $ipset_secure_clients = "cflog_${title}_tlsaccess"
+        $ipset_secure_clients = "${fw_service}_tlsaccess"
         cfnetwork::ipset { $ipset_secure_clients:
             addr => $secure_client_hosts.sort() + $extra_secure_clients,
         }
-        cfnetwork::service_port { "${iface}:${user}_tls":
+        cfnetwork::service_port { "${iface}:${fw_service}_tls":
             src => "ipset:${ipset_secure_clients}",
         }
     }
 
-    #---
-    if $dbaccess {
-        create_resources(
-            'cfdb::access',
-            {
-                "${service_name}"  => {
-                    local_user      => $user,
-                    use_unix_socket => false,
-                    notify          => Cflogsink_endpoint[ $title  ],
+    if $type == 'logstash' {
+        $internal_listen = '127.0.0.1'
+        $fact_internal_port = cfsystem::gen_port("${service_name}:internal", pick_default($internal_port, $fact_port))
+        $fact_control_port = cfsystem::gen_port("${service_name}:control")
+
+        ensure_resource('cfnetwork::describe_service', "${fw_service}_internal", {
+            server => "tcp/${fact_internal_port}",
+        })
+        cfnetwork::service_port { "local:${fw_service}_internal": }
+        cfnetwork::client_port { "local:${fw_service}_internal":
+            user => [ $user, 'root' ],
+        }
+        ensure_resource('cfnetwork::describe_service', "${fw_service}_control", {
+            server => "tcp/${fact_internal_port}",
+        })
+        cfnetwork::service_port { "local:${fw_service}_control": }
+        cfnetwork::client_port { "local:${fw_service}_control":
+            user => [ $user, 'root' ],
+        }
+
+        #---
+        if $dbaccess {
+            create_resources(
+                'cfdb::access',
+                {
+                    "${service_name}"  => {
+                        local_user      => $user,
+                        use_unix_socket => false,
+                        notify          => Cflogsink_endpoint[ $title  ],
+                    },
                 },
-            },
-            $dbaccess
-        )
+                $dbaccess
+            )
+        }
+
+        #---
+        file { "${root_dir}/config/pipeline.conf":
+            owner   => $user,
+            group   => $user,
+            mode    => '0640',
+            content => epp(pick($config, "cflogsink/${type}_default.conf"), {
+                root_dir => $root_dir,
+            }),
+            notify  => Service[ $service_name ],
+        }
+        -> file { "${root_dir}/config/tpl-access.json":
+            owner   => $user,
+            group   => $user,
+            mode    => '0640',
+            content => file('cflogsink/access-template-es6x.json'),
+            notify  => Service[ $service_name ],
+        }
+        -> file { "${root_dir}/config/tpl-fw.json":
+            owner   => $user,
+            group   => $user,
+            mode    => '0640',
+            content => file('cflogsink/fw-template-es6x.json'),
+            notify  => Service[ $service_name ],
+        }
+        -> file { "${root_dir}/config/tpl-log.json":
+            owner   => $user,
+            group   => $user,
+            mode    => '0640',
+            content => file('cflogsink/log-template-es6x.json'),
+            notify  => Service[ $service_name ],
+        }
+        -> cflogsink_endpoint { $title:
+            ensure        => present,
+            type          => $type,
+            user          => $user,
+            service_name  => $service_name,
+
+            memory_weight => $memory_weight,
+            cpu_weight    => $cpu_weight,
+            io_weight     => $io_weight,
+
+            root_dir      => $root_dir,
+
+            settings_tune => merge(
+                $settings_tune,
+                {
+                    cflogsink => merge(
+                        {
+                            'listen'          => $listen,
+                            'internal_listen' => $internal_listen,
+                        },
+                        pick($settings_tune['cflogsink'], {}),
+                        {
+                            'port'          => $fact_port,
+                            'secure_port'   => $fact_secure_port,
+                            'internal_port' => $fact_internal_port,
+                            'control_port'  => $fact_control_port,
+                        },
+                    )
+                }
+            ),
+
+            location      => $cfsystem::location,
+
+            require       => [
+                User[$user],
+                File[$user_dirs],
+                Cfsystem_memory_weight[$service_name],
+                #Cfsystem::Puppetpki[$user],
+                Anchor['cfnetwork:firewall'],
+            ],
+        }
+        -> service { $service_name:
+            require => Cfsystem_flush_config['commit'],
+        }
+
+        #---
+        include cfsystem::custombin
+        file { "${cfsystem::custombin::bin_dir}/cflog_${title}":
+            mode    => '0755',
+            content => epp('cflogsink/cflog.sh.epp', {
+                user     => $user,
+                env_file => "${root_dir}/.env",
+            }),
+        }
+
+        #---
+        $rsyslog_rule = $service_name
+
+        file { "/etc/rsyslog.d/48_${rsyslog_rule}.conf":
+            mode    => '0640',
+            content => epp('cflogsink/omfwd.conf.epp', {
+                rule_name   => $rsyslog_rule,
+                target      => pick($internal_listen, '127.0.0.1'),
+                target_port => $fact_internal_port,
+                tune        => merge( {
+                    'queue.size'             => 10000,
+                    'queue.dequeuebatchsize' => 1000,
+                    'queue.maxdiskspace'     => '1g',
+                    'queue.timeoutenqueue'   => 0,
+                    'queue.saveonshutdown'   => 'on',
+                    'queue.type'             => 'LinkedList',
+                    'queue.filename'         => $service_name,
+                }, pick($settings_tune['cfomwd'], {}) ),
+            }),
+        }
+        ~> Exec['cflogsink:rsyslog:refresh']
+    } else {
+        $rsyslog_rule = 'sink'
     }
 
     #---
-    file { "${root_dir}/config/pipeline.conf":
-        owner   => $user,
-        group   => $user,
-        mode    => '0640',
-        content => epp(pick($config, "cflogsink/${type}_default.conf"), {
-            root_dir => $root_dir,
-        }),
-        notify  => Service[ $service_name ],
-    }
-    -> file { "${root_dir}/config/tpl-access.json":
-        owner   => $user,
-        group   => $user,
-        mode    => '0640',
-        content => file('cflogsink/access-template-es6x.json'),
-        notify  => Service[ $service_name ],
-    }
-    -> file { "${root_dir}/config/tpl-fw.json":
-        owner   => $user,
-        group   => $user,
-        mode    => '0640',
-        content => file('cflogsink/fw-template-es6x.json'),
-        notify  => Service[ $service_name ],
-    }
-    -> file { "${root_dir}/config/tpl-log.json":
-        owner   => $user,
-        group   => $user,
-        mode    => '0640',
-        content => file('cflogsink/log-template-es6x.json'),
-        notify  => Service[ $service_name ],
-    }
-    -> cflogsink_endpoint { $title:
-        ensure        => present,
-        type          => $type,
-        user          => $user,
-        service_name  => $service_name,
-
-
-        memory_weight => $memory_weight,
-        cpu_weight    => $cpu_weight,
-        io_weight     => $io_weight,
-
-        root_dir      => $root_dir,
-
-        settings_tune => merge(
-            $settings_tune,
-            {
-                cflogsink => merge(
-                    {
-                        'listen'          => $listen,
-                        'internal_listen' => $internal_listen,
-                    },
-                    pick($settings_tune['cflogsink'], {}),
-                    {
-                        'port'          => $fact_port,
-                        'secure_port'   => $fact_secure_port,
-                        'internal_port' => $fact_internal_port,
-                        'control_port'  => $fact_control_port,
-                    },
-                )
-            }
-        ),
-
-        location      => $cfsystem::location,
-
-        require       => [
-            User[$user],
-            File[$user_dirs],
-            Cfsystem_memory_weight[$service_name],
-            #Cfsystem::Puppetpki[$user],
-            Anchor['cfnetwork:firewall'],
-        ],
-    }
-    -> service { $service_name:
-        require => Cfsystem_flush_config['commit'],
-    }
-
-    #---
-    include cflogsink::rsyslog
-    include cflogsink::internal::imrelpmodule
-
-    file { "/etc/rsyslog.d/48_${service_name}.conf":
-        mode    => '0640',
-        content => epp('cflogsink/omfwd.conf.epp', {
-            service_name => $service_name,
-            target       => pick($internal_listen, '127.0.0.1'),
-            target_port  => $fact_internal_port,
-            tune         => merge( {
-                'queue.size'             => 10000,
-                'queue.dequeuebatchsize' => 1000,
-                'queue.maxdiskspace'     => '1g',
-                'queue.timeoutenqueue'   => 0,
-                'queue.saveonshutdown'   => 'on',
-                'queue.type'             => 'LinkedList',
-                'queue.filename'         => $service_name,
-            }, pick($settings_tune['cfomwd'], {}) ),
-        }),
-    }
-    ~> Exec['cflogsink:rsyslog:refresh']
-
     file { "/etc/rsyslog.d/49_${service_name}_plain.conf":
         mode    => '0640',
         content => epp('cflogsink/imrelp.conf.epp', {
-            service_name => $service_name,
-            listen       => pick($listen, '0.0.0.0'),
-            port         => $fact_port,
-            tune         => {
+            rule_name => $rsyslog_rule,
+            listen    => pick($listen, '0.0.0.0'),
+            port      => $fact_port,
+            tune      => {
                 'maxdatasize'        => '128k',
                 'keepalive'          => 'on',
                 'keepalive.interval' => 30,
@@ -290,10 +324,10 @@ define cflogsink::endpoint (
     file { "/etc/rsyslog.d/49_${service_name}_tls.conf":
         mode    => '0640',
         content => epp('cflogsink/imrelp.conf.epp', {
-            service_name => $service_name,
-            listen       => pick($listen, '0.0.0.0'),
-            port         => $fact_secure_port,
-            tune         => {
+            rule_name => $rsyslog_rule,
+            listen    => pick($listen, '0.0.0.0'),
+            port      => $fact_secure_port,
+            tune      => {
                 'maxdatasize'        => '128k',
                 'tls'                => 'on',
                 'tls.compression'    => 'on',
@@ -310,14 +344,4 @@ define cflogsink::endpoint (
         }),
     }
     ~> Exec['cflogsink:rsyslog:refresh']
-
-    #---
-    include cfsystem::custombin
-    file { "${cfsystem::custombin::bin_dir}/cflog_${title}":
-        mode    => '0755',
-        content => epp('cflogsink/cflog.sh.epp', {
-            user     => $user,
-            env_file => "${root_dir}/.env",
-        }),
-    }
 }

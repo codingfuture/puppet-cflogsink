@@ -1,5 +1,5 @@
 <% |
-    String[1] $service_name,
+    String[1] $rule_name,
     String[1] $listen,
     Integer[1] $port,
     Hash $tune,
@@ -10,7 +10,7 @@
 
 input(
     type="imrelp"
-    ruleset="<%= $service_name %>"
+    ruleset="<%= $rule_name %>"
     port="<%= $port %>"
 <%
     $tune.each | $k, $v | {

@@ -13,8 +13,8 @@ What it does:
     * Optimized storage field.
     * Special handling of known message formats to minimize noise.
     * Automatic error detection in regular log level.
-* Support for custom Logstash endpoint for special purposes.
-* Reliably real-time message delivery through rsyslog RELP.
+* Reliable real-time message delivery through rsyslog RELP.
+	* Proxy host support for complex configurations
 * Supports UDP & TCP local receive (suitable for JVM services).
 * Heavy duty `/dev/hdlog` skipping systemd.
     * Mostly for HTTP access log and similar.
