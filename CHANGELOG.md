@@ -2,6 +2,7 @@
 - CHANGED: returned mmutf8fix before Logstash
 - FIXED: cflog_* query to handle spaces
 - NEW: 'proxy' mode for cflogsink::endpoint
+- NEW: MongoDB message triage support
 
 # 1.3.0 (2019-04-14)
 - CHANGED: to terminate RELP in rsyslog for all cases

@@ -259,6 +259,38 @@ filter {
                 mutate { add_tag => 'error'  }
             }
         }
+        else if [app] =~ /^cfmongodb-/ {
+            grok {
+                match => {
+                    'msg' => '^%{TIMESTAMP_ISO8601}%{SPACE}(?<new_severity>[A-Z]+)%{SPACE}(?<new_component>[A-Z]+)%{SPACE}%{GREEDYDATA:new_msg}'
+                }
+            }
+            # MongoDB has excessive logging and the devs refuse to solve it anyhow...
+            if [new_severity] == 'I' and [new_component] == 'NETWORK' {
+                drop {}
+            }
+            else if [new_severity] in ['F', 'E'] {
+                mutate {
+                    replace => { 'severity' => 'error' }
+                    add_tag => 'error'
+                }
+            }
+            else if [new_severity] in ['W'] {
+                mutate {
+                    replace => { 'severity' => 'warn' }
+                }
+            }
+            mutate {
+                replace => {
+                    'msg' => "%{new_component} %{new_msg}"
+                }
+                remove_field => [
+                    'new_msg',
+                    'new_severity',
+                    'new_component'
+                ]
+            }
+        }
 
         # Detect warnings and errors
         #---
