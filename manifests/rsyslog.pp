@@ -18,4 +18,6 @@ class cflogsink::rsyslog(
     package { 'rsyslog':
         ensure => $version,
     }
+    package { 'rsyslog-mmutf8fix': }
+    ~> Exec['cflogsink:rsyslog:refresh']
 }

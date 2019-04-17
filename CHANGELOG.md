@@ -1,4 +1,5 @@
 # (next)
+- CHANGED: returned mmutf8fix before Logstash
 - NEW: 'proxy' mode for cflogsink::endpoint
 
 # 1.3.0 (2019-04-14)
