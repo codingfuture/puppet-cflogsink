@@ -28,7 +28,7 @@ else
 fi
 
 if [ -n "${query}" ]; then
-    query="&q=${query}"
+    query=$(echo "&q=${query}" | /bin/sed -e 's/ /%20/g')
     shift
 fi
 
