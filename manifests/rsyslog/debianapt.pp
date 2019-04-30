@@ -10,7 +10,7 @@ class cflogsink::rsyslog::debianapt (
 ) {
     include cfsystem
 
-    $base_apt_url = 'http://download.opensuse.org/repositories/home:/rgerhards/'
+    $base_apt_url = 'http://download.opensuse.org/repositories/home:/rgerhards'
 
     if versioncmp($::facts['operatingsystemrelease'], '9') >= 0 {
         $release = 'stretch'
@@ -26,7 +26,7 @@ class cflogsink::rsyslog::debianapt (
         )
     }
 
-    if $apt_url {
+    if $fact_apt_url {
         apt::key {'rsyslog':
             id      => '4B2686292312675EE69DD7E3C6326869D2017333',
             server  => 'not.valid.server',
@@ -54,12 +54,28 @@ VpSCqs9D451g
 -----END PGP PUBLIC KEY BLOCK-----
 ',
         }
-        apt::source { 'rsyslog':
-            location => $apt_url,
-            release  => $release,
-            repos    => '/',
-            pin      => $cfsystem::apt_pin + 1,
-            require  => Apt::Key['rsyslog'],
+
+        # OBS does not have proper repository structure
+        file { '/etc/apt/preferences.d/rsyslog.pref':
+            content => [
+                'Explanation: cflogsink: rsyslog',
+                'Package: rsyslog*',
+                'Pin: version 8.*',
+                'Pin-Priority: 1010',
+                '',
+            ].join("\n"),
         }
+        -> file { '/etc/apt/sources.list.d/rsyslog.list':
+            content => "\ndeb ${fact_apt_url} /\n",
+            notify  => Exec['apt_update'],
+        }
+
+        # apt::source { 'rsyslog':
+        #    location => $fact_apt_url,
+        #    release  => $release,
+        #    repos    => '/',
+        #    pin      => $cfsystem::apt_pin + 1,
+        #    require  => Apt::Key['rsyslog'],
+        # }
     }
 }
