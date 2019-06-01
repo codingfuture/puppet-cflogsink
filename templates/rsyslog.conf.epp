@@ -34,7 +34,7 @@ $IncludeConfig /etc/rsyslog.d/*.conf
 # Remote forward
 #---
 
-main_queue(
+ruleset( name="main"
 <%
 $tune.each | $k, $v | {
     if $k =~ /^queue\./ {
@@ -44,7 +44,9 @@ $tune.each | $k, $v | {
     }
 }
 -%>
-)
+) {
+    call sink
+}
 
 ruleset( name="sink" ) {
     action(
@@ -72,4 +74,4 @@ ruleset( name="sink" ) {
 *.emerg                         :omusrmsg:*
 
 # all goes to central sink
-call sink
+call main

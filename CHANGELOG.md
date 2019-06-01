@@ -1,6 +1,7 @@
 # (next)
 - CHANGED: returned mmutf8fix before Logstash
 - FIXED: cflog_* query to handle spaces
+- FIXED: workaround for rsyslog 8.1905 segfault
 - NEW: 'proxy' mode for cflogsink::endpoint
 - NEW: MongoDB message triage support
 
