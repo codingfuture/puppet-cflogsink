@@ -1,4 +1,4 @@
-# (next)
+# 1.3.1 (2019-06-17)
 - CHANGED: returned mmutf8fix before Logstash
 - FIXED: cflog_* query to handle spaces
 - FIXED: workaround for rsyslog 8.1905 segfault
