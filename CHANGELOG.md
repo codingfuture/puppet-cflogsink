@@ -1,3 +1,6 @@
+# (next)
+- FIXED: Debian librelp0 priority
+
 # 1.3.1 (2019-06-17)
 - CHANGED: returned mmutf8fix before Logstash
 - FIXED: cflog_* query to handle spaces
