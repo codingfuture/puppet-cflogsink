@@ -62,6 +62,8 @@ VpSCqs9D451g
                 'Package: rsyslog*',
                 'Pin: version 8.*',
                 'Pin-Priority: 1010',
+		'',
+                'Explanation: cflogsink: librelp0',
                 'Package: librelp0*',
                 'Pin: version 1.*',
                 'Pin-Priority: 1010',
