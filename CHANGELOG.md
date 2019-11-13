@@ -1,4 +1,4 @@
-# (next)
+# 1.3.2 (2019-11-13)
 - FIXED: Debian librelp0 priority
 
 # 1.3.1 (2019-06-17)
