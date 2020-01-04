@@ -54,7 +54,7 @@
                 },
                 "verb": { "type": "keyword" },
                 "vhost": { "type": "keyword" },
-                "vport": { "type": "short", "index": false }
+                "vport": { "type": "integer", "index": false }
             }
         }
     }
