@@ -163,7 +163,7 @@ Puppet::Type.type(:cflogsink_endpoint).provide(
 
         # Service File
         #==================================================
-        start_timeout = 60
+        start_timeout = 180
 
         content_ini = {
             'Unit' => {

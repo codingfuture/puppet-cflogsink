@@ -333,7 +333,7 @@ define cflogsink::endpoint (
                 'tls.compression'    => 'on',
                 'tls.dhbits'         => 2048,
                 'tls.authmode'       => 'name',
-                'tls.permittedpeer'  => $secure_client_hosts,
+                'tls.permittedpeer'  => cfsystem::stable_sort($secure_client_hosts),
                 'tls.cacert'         => '/etc/puppetlabs/puppet/ssl/certs/ca.pem',
                 'tls.mycert'         => "/etc/puppetlabs/puppet/ssl/certs/${::facts['fqdn']}.pem",
                 'tls.myprivkey'      => "/etc/puppetlabs/puppet/ssl/private_keys/${::facts['fqdn']}.pem",
