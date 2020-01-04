@@ -1,6 +1,7 @@
 # (next)
 - FIXED: to support access log vport of upper range
 - FIXED: to use stable sort for permitted peer list
+- CHANGED: increased Logstash startup timeout to 180 seconds
 
 # 1.3.2 (2019-11-13)
 - FIXED: Debian librelp0 priority
